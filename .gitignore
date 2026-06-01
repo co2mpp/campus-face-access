@@ -36,3 +36,6 @@ Thumbs.db
 # Documents (non-code)
 *.docx
 *.pdf
+
+# Face images (personal data)
+人脸图片/
