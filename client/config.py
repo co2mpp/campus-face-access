@@ -2,7 +2,10 @@
 import os
 import sqlite3
 import base64
+from dotenv import load_dotenv
 from Crypto.Random import get_random_bytes
+
+load_dotenv()
 
 # 客户端数据目录
 CLIENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,7 +21,7 @@ CLIENT_PORT = int(os.environ.get('CLIENT_PORT', 5001))
 DEVICE_SN = os.environ.get('DEVICE_SN', 'GATE-001')
 
 # 识别参数
-RECOGNITION_THRESHOLD = 0.6
+RECOGNITION_THRESHOLD = 0.5
 DEDUP_INTERVAL_SEC = 10        # 同学生识别去重间隔
 FRAME_SKIP = 3                 # 每3帧检测一次
 HEARTBEAT_INTERVAL = 30        # 心跳间隔(秒)

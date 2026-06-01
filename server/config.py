@@ -2,13 +2,21 @@
 import os
 import base64
 from urllib.parse import quote_plus
+from dotenv import load_dotenv
 from Crypto.Random import get_random_bytes
+
+load_dotenv()
 
 # MySQL 连接配置
 MYSQL_HOST = os.environ.get('MYSQL_HOST', '127.0.0.1')
 MYSQL_PORT = int(os.environ.get('MYSQL_PORT', 3306))
 MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
-MYSQL_PASSWORD_RAW = os.environ.get('MYSQL_PASSWORD', 'Xu31415926@qq.com')
+MYSQL_PASSWORD_RAW = os.environ.get('MYSQL_PASSWORD')
+if not MYSQL_PASSWORD_RAW:
+    raise RuntimeError(
+        "MYSQL_PASSWORD 环境变量未设置！"
+        "请通过环境变量设置数据库密码，例如：export MYSQL_PASSWORD=your_password"
+    )
 MYSQL_PASSWORD = quote_plus(MYSQL_PASSWORD_RAW)
 MYSQL_DB = os.environ.get('MYSQL_DB', 'smart_gate')
 

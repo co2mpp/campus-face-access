@@ -275,9 +275,89 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
   .sidebar .logo-text,.sidebar .logo-ver,.nav-item span:not(.nav-icon){display:none}
   .main{margin-left:60px;max-width:calc(100vw - 60px)}
 }
+
+/* ===== Login Page ===== */
+.login-overlay {
+  position:fixed; inset:0; background:var(--sidebar-bg); z-index:300;
+  display:flex; align-items:center; justify-content:center;
+}
+.login-card {
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px; padding:40px 36px; width:90%; max-width:400px;
+  text-align:center;
+}
+.login-card .login-icon {
+  width:56px; height:56px; background:var(--primary); border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:26px; margin:0 auto 16px;
+}
+.login-card h2 { color:#fff; font-size:20px; margin-bottom:6px; }
+.login-card .login-sub { color:var(--text-muted); font-size:13px; margin-bottom:24px; }
+.login-card input {
+  width:100%; padding:10px 14px; margin-bottom:12px; border-radius:8px;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+  color:#fff; font-size:14px;
+}
+.login-card input::placeholder { color:var(--text-muted); }
+.login-card input:focus { border-color:var(--primary); outline:none; }
+.login-card .login-btn {
+  width:100%; padding:10px; border:none; border-radius:8px;
+  background:var(--primary); color:#fff; font-size:14px; font-weight:600;
+  cursor:pointer; margin-top:8px; transition:background .15s;
+}
+.login-card .login-btn:hover { background:var(--primary-hover); }
+.login-card .login-err { color:var(--danger); font-size:12px; margin-top:8px; min-height:18px; }
+
+/* Logout button in sidebar */
+.sidebar-footer { padding:8px; border-top:1px solid rgba(255,255,255,0.08); }
+.sidebar-footer .logout-btn {
+  display:flex; align-items:center; gap:8px; padding:10px 12px;
+  border-radius:var(--radius); cursor:pointer; color:rgba(255,255,255,0.5);
+  font-size:13px; transition:all .15s; border:none; background:none; width:100%;
+}
+.sidebar-footer .logout-btn:hover { color:var(--danger); background:rgba(239,68,68,0.1); }
+
+/* ===== Refresh indicator ===== */
+.refresh-indicator { font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px; }
+.refresh-indicator .refresh-dot { width:6px; height:6px; border-radius:50%; background:var(--success); animation:pulse-dot 2s infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ===== Stat number animation ===== */
+.stat-value { transition:all .3s ease; }
+
+/* ===== Canvas chart wrappers ===== */
+.chart-canvas-wrap { width:100%; height:260px; position:relative; }
+.chart-canvas-wrap canvas { width:100%!important; height:100%!important; }
+
+/* ===== Batch import ===== */
+.batch-tabs { display:flex; gap:0; margin-bottom:16px; border-bottom:2px solid var(--border); }
+.batch-tab {
+  padding:8px 20px; cursor:pointer; font-size:13px; font-weight:500;
+  color:var(--text-secondary); background:none; border:none;
+  border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s;
+}
+.batch-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+.batch-result { margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px; display:none; }
+.batch-result.success { background:#ecfdf5; color:#166534; border:1px solid #bbf7d0; }
+.batch-result.partial { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+.batch-result.error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+.textarea-field { width:100%; min-height:120px; font-family:monospace; font-size:12px; resize:vertical; }
 </style>
 </head>
 <body>
+
+<!-- ===== Login Overlay ===== -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-icon">&#x1f6e1;</div>
+    <h2>校园门禁管理后台</h2>
+    <p class="login-sub">请输入管理员账号登录</p>
+    <input type="text" id="login-username" placeholder="用户名" autocomplete="username">
+    <input type="password" id="login-password" placeholder="密码" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
 
 <!-- ===== Sidebar ===== -->
 <aside class="sidebar">
@@ -302,6 +382,11 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
       <span class="nav-icon">&#x1f4fb;</span> <span>设备状态</span>
     </button>
   </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()">
+      <span style="font-size:15px">&#x1f6aa;</span> <span>退出登录</span>
+    </button>
+  </div>
 </aside>
 
 <!-- ===== Main Content ===== -->
@@ -318,6 +403,9 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
         <p class="subtitle">实时掌握校园门禁运行状态</p>
       </div>
       <div class="header-badge online">&#x25cf; 系统运行中</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <div class="refresh-indicator"><span class="refresh-dot"></span> 上次刷新: <span id="refresh-time">--:--:--</span></div>
     </div>
 
     <div class="stat-grid">
@@ -355,19 +443,8 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
       <div class="card">
         <div class="card-header">&#x1f4c8; 近7日通行趋势</div>
         <div class="card-body">
-          <div class="chart-container" id="trend-chart">
-            <svg width="100%" height="240" viewBox="0 0 500 240">
-              <line x1="50" y1="200" x2="480" y2="200" stroke="#e2e8f0" stroke-width="1"/>
-              <line x1="50" y1="20" x2="50" y2="200" stroke="#e2e8f0" stroke-width="1"/>
-              <text x="20" y="204" fill="#94a3b8" font-size="11" text-anchor="end">0</text>
-              <text x="20" y="140" fill="#94a3b8" font-size="11" text-anchor="end">5</text>
-              <text x="20" y="80" fill="#94a3b8" font-size="11" text-anchor="end">10</text>
-              <line x1="50" y1="200" x2="480" y2="200" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,3"/>
-              <line x1="245" y1="200" x2="245" y2="200" stroke="#10b981" stroke-width="2" stroke-dasharray="4,3"/>
-              <text x="260" y="196" fill="#94a3b8" font-size="11">暂无通行数据</text>
-            </svg>
-          </div>
-          <div class="chart-legend">
+          <div class="chart-canvas-wrap"><canvas id="trend-chart-canvas"></canvas></div>
+          <div class="chart-legend" style="margin-top:8px">
             <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#3b82f6"></span>进入</div>
             <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#10b981"></span>离开</div>
           </div>
@@ -376,15 +453,9 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
 
       <div class="card">
         <div class="card-header">&#x1f465; 院系分布</div>
-        <div class="card-body" style="display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <svg width="200" height="200" viewBox="0 0 42 42" id="dept-donut">
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#e2e8f0" stroke-width="8"/>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#3b82f6" stroke-width="8"
-              stroke-dasharray="0 100" stroke-dashoffset="25" transform="rotate(-90 21 21)" id="dept-seg"/>
-            <text x="21" y="20" text-anchor="middle" fill="#1e293b" font-size="7" font-weight="700" id="dept-total">0</text>
-            <text x="21" y="28" text-anchor="middle" fill="#94a3b8" font-size="4">总人数</text>
-          </svg>
-          <div class="chart-legend" id="dept-legend" style="margin-top:12px">
+        <div class="card-body">
+          <div class="chart-canvas-wrap"><canvas id="dept-chart-canvas"></canvas></div>
+          <div class="chart-legend" id="dept-legend" style="margin-top:8px">
             <div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--text-muted)"></span>暂无数据</div>
           </div>
         </div>
@@ -409,7 +480,10 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
         <h2>学生信息管理</h2>
         <p class="subtitle">管理学生基本信息，共 <span id="stu-total-count">0</span> 条记录</p>
       </div>
-      <button class="btn btn-primary" onclick="showStudentModal()">+ 添加学生</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="showBatchImportModal()">&#x1f4e5; 批量导入</button>
+        <button class="btn btn-primary" onclick="showStudentModal()">+ 添加学生</button>
+      </div>
     </div>
     <div class="card">
       <div class="card-body">
@@ -418,6 +492,11 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
             <span class="search-icon">&#x1f50d;</span>
             <input type="text" id="stu-search" placeholder="搜索学号、姓名、院系..." onkeyup="loadStudents()" class="search-input">
           </div>
+          <select id="stu-status-filter" class="filter-select" onchange="loadStudents()">
+            <option value="">全部状态</option>
+            <option value="in">在校</option>
+            <option value="out">离校</option>
+          </select>
         </div>
         <div style="overflow-x:auto">
         <table>
@@ -541,13 +620,14 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
     <div class="page-header">
       <div>
         <h2>设备状态</h2>
-        <p class="subtitle">查看所有门禁终端的在线状态</p>
+        <p class="subtitle">管理门禁终端设备，共 <span id="dev-total-count">0</span> 台</p>
       </div>
+      <button class="btn btn-primary" onclick="showDeviceModal()">+ 添加设备</button>
     </div>
     <div class="card">
       <div class="card-body no-padding" style="overflow-x:auto">
         <table>
-          <thead><tr><th>设备序列号</th><th>名称</th><th>状态</th><th>最后心跳</th></tr></thead>
+          <thead><tr><th>设备序列号</th><th>名称</th><th>状态</th><th>最后心跳</th><th>操作</th></tr></thead>
           <tbody id="device-table"></tbody>
         </table>
       </div>
@@ -583,14 +663,112 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
     </div>
   </div>
 
+  <!-- ===== Batch Import Modal ===== -->
+  <div class="modal-overlay" id="batch-import-modal-overlay">
+    <div class="modal" style="max-width:600px">
+      <h3>批量导入学生</h3>
+      <div class="batch-tabs">
+        <button class="batch-tab active" onclick="switchBatchTab('csv')">CSV 文件上传</button>
+        <button class="batch-tab" onclick="switchBatchTab('json')">JSON 粘贴</button>
+      </div>
+      <div id="batch-tab-csv">
+        <div class="form-group"><label>CSV 文件 (列: 学号,姓名,院系)</label></div>
+        <input type="file" id="batch-csv-file" accept=".csv" style="width:100%">
+        <p style="font-size:11px;color:var(--text-muted);margin-top:6px">第一行为列名，必须包含: stu_no(或学号), name(或姓名), department(或院系，可选)</p>
+      </div>
+      <div id="batch-tab-json" style="display:none">
+        <div class="form-group"><label>JSON 数组</label></div>
+        <textarea class="textarea-field" id="batch-json-text" placeholder='[{"stu_no":"20231113513","name":"张三","department":"计算机学院"}, ...]'></textarea>
+      </div>
+      <div class="batch-result" id="batch-result"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="closeBatchImportModal()">取消</button>
+        <button class="btn btn-primary" onclick="doBatchImport()">开始导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Device Modal ===== -->
+  <div class="modal-overlay" id="device-modal-overlay">
+    <div class="modal">
+      <h3 id="device-modal-title">添加设备</h3>
+      <input type="hidden" id="dev-edit-id">
+      <div class="form-group"><label>设备序列号 *</label><input type="text" id="dev-sn" placeholder="如 GATE-002"></div>
+      <div class="form-group"><label>设备名称</label><input type="text" id="dev-name" placeholder="如 南门闸机"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeDeviceModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveDevice()">保存</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 const API = '';
 let studentPage = 1, recordPage = 1;
 let selectedFaceStudentId = null;
 let allFaceStudents = [];
 let faceStudentMap = {}; // student_id -> {has_face, feature_version}
+let dashboardTimer = null;
+let trendChart = null;
+let deptChart = null;
+
+// ====== Auth ======
+function showLogin() {
+  document.querySelector('.sidebar').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+  $('login-overlay').style.display = 'flex';
+  if (dashboardTimer) { clearInterval(dashboardTimer); dashboardTimer = null; }
+}
+function hideLogin() {
+  $('login-overlay').style.display = 'none';
+  document.querySelector('.sidebar').style.display = 'flex';
+  document.querySelector('.main').style.display = 'block';
+}
+async function checkAuth() {
+  try {
+    const resp = await fetch(API + '/api/auth/status', {credentials:'same-origin'});
+    if (resp.status === 401) { showLogin(); return false; }
+    const data = await resp.json();
+    if (data.authenticated) { hideLogin(); return true; }
+    else { showLogin(); return false; }
+  } catch(e) { showLogin(); return false; }
+}
+async function doLogin() {
+  const username = $('login-username').value.trim();
+  const password = $('login-password').value.trim();
+  if (!username || !password) { $('login-err').textContent = '请输入用户名和密码'; return; }
+  $('login-err').textContent = '';
+  try {
+    const resp = await fetch(API + '/api/auth/login', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:username, password:password})
+    });
+    const data = await resp.json();
+    if (data.success) { hideLogin(); initApp(); }
+    else { $('login-err').textContent = data.message || '登录失败'; }
+  } catch(e) { $('login-err').textContent = '网络错误: ' + e.message; }
+}
+async function doLogout() {
+  try { await fetch(API + '/api/auth/logout', {method:'POST', credentials:'same-origin'}); } catch(e) {}
+  if (dashboardTimer) { clearInterval(dashboardTimer); dashboardTimer = null; }
+  showLogin();
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && $('login-overlay').style.display === 'flex') { doLogin(); }
+});
+
+// ====== API Wrapper ======
+async function apiFetch(url, options) {
+  options = options || {};
+  options.credentials = 'same-origin';
+  const resp = await fetch(API + url, options);
+  if (resp.status === 401) { showLogin(); throw new Error('需要登录'); }
+  return resp;
+}
 
 // ====== Utilities ======
 function $(id) { return document.getElementById(id); }
@@ -603,7 +781,6 @@ function switchTab(name) {
   document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
   const sec = document.getElementById('sec-' + name);
   if (sec) { sec.classList.add('active'); loadTabData(name); }
-  // Find and activate the corresponding nav item
   const navItem = document.querySelector('.nav-item[onclick*="' + name + '"]');
   if (navItem) navItem.classList.add('active');
 }
@@ -626,92 +803,145 @@ function formatDateTime(iso) {
 }
 
 // ====== Dashboard ======
+function animateValue(el, target, duration) {
+  const start = parseInt(el.textContent) || 0;
+  if (start === target) return;
+  const startTime = performance.now();
+  function step(ts) {
+    const elapsed = ts - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + (target - start) * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function updateRefreshTime() {
+  const now = new Date();
+  $('refresh-time').textContent = now.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
 async function loadDashboard() {
   try {
-    const [stuRes, recRes, devRes, facesRes] = await Promise.all([
-      fetch(API + '/api/student').then(r=>r.json()),
-      fetch(API + '/api/record?per_page=8').then(r=>r.json()),
-      fetch(API + '/api/heartbeat/status').then(r=>r.json()),
-      fetch(API + '/api/sync/features?since_version=0').then(r=>r.json()),
-    ]);
-    const totalStudents = stuRes.total || 0;
-    const inCount = stuRes.data ? stuRes.data.filter(s=>s.status==='in').length : 0;
-    const outCount = totalStudents - inCount;
-    const todayTotal = recRes.total || 0;
-    const devices = devRes.devices || [];
-    const onlineDevices = devices.filter(d=>d.is_online).length;
-    const faceCount = facesRes.features ? facesRes.features.length : 0;
+    const resp = await apiFetch('/api/dashboard/stats');
+    const d = await resp.json();
 
-    $('stat-students').textContent = totalStudents;
-    $('stat-registered').textContent = '已注册人脸 ' + faceCount + ' 人';
-    $('stat-in').textContent = inCount;
-    $('stat-out').textContent = '离校 ' + outCount + ' 人';
-    $('stat-today').textContent = todayTotal;
-    $('stat-today-fail').textContent = '失败 0 次';
-    $('stat-devices').textContent = onlineDevices;
-    $('stat-total-devices').textContent = '共 ' + devices.length + ' 台设备';
+    // Stat cards with animation
+    animateValue($('stat-students'), d.total_students || 0, 600);
+    $('stat-registered').textContent = '已注册人脸 ' + (d.registered_faces || 0) + ' 人';
+    animateValue($('stat-in'), d.in_school || 0, 600);
+    $('stat-out').textContent = '离校 ' + (d.out_school || 0) + ' 人';
+    animateValue($('stat-today'), d.today_total || 0, 600);
+    $('stat-today-fail').textContent = '失败 ' + (d.today_fail || 0) + ' 次';
+    animateValue($('stat-devices'), d.online_devices || 0, 600);
+    $('stat-total-devices').textContent = '共 ' + (d.total_devices || 0) + ' 台设备';
+
+    updateRefreshTime();
 
     // Recent records
     let recHtml = '';
-    if (recRes.data) recRes.data.slice(0,8).forEach(r => {
+    if (d.recent_records) d.recent_records.forEach(r => {
       const simDisplay = r.similarity != null ? (r.similarity * 100).toFixed(1) + '%' : '-';
+      const simColor = r.similarity != null ? (r.similarity >= 0.5 ? 'var(--success)' : 'var(--danger)') : 'var(--text-muted)';
       const dirLabel = r.direction==='in'?'进入':(r.direction==='out'?'离开':'手动');
       const dirClass = r.direction==='in'?'in':(r.direction==='out'?'out':'manual');
       recHtml += `<tr>
         <td style="font-family:monospace;font-size:12px">${formatDateTime(r.record_time)}</td>
-        <td>${r.student_name||'-'}</td>
+        <td>${r.name||'-'}</td>
         <td style="font-family:monospace">${r.stu_no||'-'}</td>
         <td><span class="badge badge-${dirClass}">${dirLabel}</span></td>
         <td><span class="badge badge-${r.result||'success'}">${r.result==='success'?'&#x2713; 成功':'&#x2717; 失败'}</span></td>
-        <td style="font-weight:500;color:var(--success)">${simDisplay}</td></tr>`;
+        <td style="font-weight:500;color:${simColor}">${simDisplay}</td></tr>`;
     });
     $('recent-records').innerHTML = recHtml || '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:24px">暂无记录</td></tr>';
 
-    // Update dept donut
-    const depts = {};
-    if (stuRes.data) stuRes.data.forEach(s => {
-      const d = s.department || '未指定';
-      depts[d] = (depts[d] || 0) + 1;
-    });
-    const deptNames = Object.keys(depts);
-    const colors = ['#10b981','#3b82f6','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899','#84cc16'];
-    if (deptNames.length > 0) {
-      const total = deptNames.reduce((s,k)=>s+depts[k],0);
-      let legendHtml = '';
-      let cumulative = 0;
-      let segHtml = '';
-      deptNames.forEach((d,i) => {
-        const pct = depts[d] / total;
-        const color = colors[i % colors.length];
-        legendHtml += `<div class="chart-legend-item"><span class="chart-legend-dot" style="background:${color}"></span>${d} (${depts[d]}人)</div>`;
-        segHtml += `<circle cx="21" cy="21" r="15.9" fill="none" stroke="${color}" stroke-width="8"
-          stroke-dasharray="${(pct*100).toFixed(1)} ${(100-pct*100).toFixed(1)}" stroke-dashoffset="${(25-cumulative).toFixed(1)}" transform="rotate(-90 21 21)"/>`;
-        cumulative += pct * 100;
+    // Trend chart (Chart.js)
+    if (d.trend_7days && d.trend_7days.length > 0) {
+      const labels = d.trend_7days.map(function(t) { return t.date.slice(5); });
+      const inData = d.trend_7days.map(function(t) { return t.in_count || 0; });
+      const outData = d.trend_7days.map(function(t) { return t.out_count || 0; });
+      const ctx = $('trend-chart-canvas').getContext('2d');
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '进入', data: inData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3b82f6' },
+            { label: '离开', data: outData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#10b981' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e2e8f0' } },
+            x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+          }
+        }
       });
-      $('dept-donut').innerHTML = segHtml + `<text x="21" y="20" text-anchor="middle" fill="#1e293b" font-size="7" font-weight="700">${total}</text><text x="21" y="28" text-anchor="middle" fill="#94a3b8" font-size="4">总人数</text>`;
-      $('dept-legend').innerHTML = legendHtml;
     }
-  } catch(e) { console.error(e); }
+
+    // Department chart (Chart.js horizontal bar)
+    if (d.department_distribution && d.department_distribution.length > 0) {
+      var deptLabels = d.department_distribution.map(function(dd) { return dd.name; });
+      var deptData = d.department_distribution.map(function(dd) { return dd.count; });
+      var deptColors = d.department_distribution.map(function(_, i) {
+        var colors = ['#10b981','#3b82f6','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899','#84cc16'];
+        return colors[i % colors.length];
+      });
+      var ctx2 = $('dept-chart-canvas').getContext('2d');
+      if (deptChart) deptChart.destroy();
+      deptChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: deptLabels,
+          datasets: [{ label: '人数', data: deptData, backgroundColor: deptColors, borderRadius: 6 }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e2e8f0' } },
+            y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+          }
+        }
+      });
+      // Update legend
+      var legendHtml = '';
+      d.department_distribution.forEach(function(dd, i) {
+        legendHtml += '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:' + deptColors[i] + '"></span>' + dd.name + ' (' + dd.count + '人)</div>';
+      });
+      $('dept-legend').innerHTML = legendHtml;
+    } else {
+      $('dept-legend').innerHTML = '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--text-muted)"></span>暂无数据</div>';
+    }
+  } catch(e) { if (e.message !== '需要登录') console.error(e); }
 }
 
 // ====== Students ======
 async function loadStudents() {
   const kw = $('stu-search').value;
+  const statusFilter = $('stu-status-filter').value;
   try {
-    const resp = await fetch(API + '/api/student?keyword=' + encodeURIComponent(kw) + '&page=' + studentPage);
+    var url = '/api/student?keyword=' + encodeURIComponent(kw) + '&page=' + studentPage;
+    if (statusFilter) url += '&status=' + statusFilter;
+    const resp = await apiFetch(url);
     const data = await resp.json();
     $('stu-total-count').textContent = data.total || 0;
 
     // Also get face data for registration status
     let faceMap = {};
     try {
-      const fResp = await fetch(API + '/api/sync/features?since_version=0');
+      const fResp = await apiFetch('/api/sync/features?since_version=0');
       const fData = await fResp.json();
-      if (fData.features) fData.features.forEach(f => { faceMap[f.student_id] = true; });
+      if (fData.features) fData.features.forEach(function(f) { faceMap[f.student_id] = true; });
     } catch(e) {}
 
     let html = '';
-    if (data.data) data.data.forEach(s => {
+    if (data.data) data.data.forEach(function(s) {
       const hasFace = faceMap[s.id];
       html += `<tr>
         <td style="font-family:monospace">${s.stu_no}</td>
@@ -728,8 +958,8 @@ async function loadStudents() {
         </td></tr>`;
     });
     $('student-table').innerHTML = html || '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:24px">暂无学生</td></tr>';
-    renderPagination('student-pages', data.total, studentPage, p => { studentPage = p; loadStudents(); });
-  } catch(e) { toast('加载失败: '+e.message, 'error'); }
+    renderPagination('student-pages', data.total, studentPage, function(p) { studentPage = p; loadStudents(); });
+  } catch(e) { if (e.message !== '需要登录') toast('加载失败: '+e.message, 'error'); }
 }
 
 function showStudentModal(editData) {
@@ -762,44 +992,90 @@ async function saveStudent() {
   try {
     let resp;
     if (id) {
-      resp = await fetch(API + '/api/student/' + id, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      resp = await apiFetch('/api/student/' + id, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     } else {
-      resp = await fetch(API + '/api/student', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      resp = await apiFetch('/api/student', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     }
     if (resp.ok) { toast(id?'更新成功':'添加成功', 'success'); closeStudentModal(); loadStudents(); loadFaces(); }
     else { const e = await resp.json(); toast(e.error||'操作失败', 'error'); }
-  } catch(e) { toast('请求失败: '+e.message, 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败: '+e.message, 'error'); }
 }
 async function editStudent(id) {
   try {
-    const resp = await fetch(API + '/api/student/' + id);
+    const resp = await apiFetch('/api/student/' + id);
     const s = await resp.json();
     showStudentModal(s);
-  } catch(e) { toast('加载失败', 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('加载失败', 'error'); }
 }
 async function deleteStudent(id) {
   if (!confirm('确定删除该学生？关联的人脸特征也将被删除。')) return;
   try {
-    const resp = await fetch(API + '/api/student/' + id, {method:'DELETE'});
+    const resp = await apiFetch('/api/student/' + id, {method:'DELETE'});
     if (resp.ok) { toast('删除成功', 'success'); loadStudents(); loadFaces(); }
     else toast('删除失败', 'error');
-  } catch(e) { toast('请求失败', 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败', 'error'); }
+}
+
+// ====== Batch Import ======
+var batchTabName = 'csv';
+function showBatchImportModal() { $('batch-import-modal-overlay').style.display = 'flex'; }
+function closeBatchImportModal() { $('batch-import-modal-overlay').style.display = 'none'; $('batch-result').style.display = 'none'; }
+function switchBatchTab(name) {
+  batchTabName = name;
+  document.querySelectorAll('.batch-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelector('.batch-tab[onclick*="' + name + '"]').classList.add('active');
+  $('batch-tab-csv').style.display = name === 'csv' ? 'block' : 'none';
+  $('batch-tab-json').style.display = name === 'json' ? 'block' : 'none';
+  $('batch-result').style.display = 'none';
+}
+async function doBatchImport() {
+  $('batch-result').style.display = 'none';
+  try {
+    var resp;
+    if (batchTabName === 'csv') {
+      var file = $('batch-csv-file').files[0];
+      if (!file) { toast('请选择CSV文件', 'error'); return; }
+      var formData = new FormData();
+      formData.append('file', file);
+      resp = await apiFetch('/api/student/batch', {method:'POST', body:formData});
+    } else {
+      var text = $('batch-json-text').value.trim();
+      if (!text) { toast('请粘贴JSON数据', 'error'); return; }
+      resp = await apiFetch('/api/student/batch', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({students: JSON.parse(text)})
+      });
+    }
+    var data = await resp.json();
+    var resultClass = 'success';
+    var errorCount = data.errors ? data.errors.length : 0;
+    var successCount = data.success || 0;
+    var skippedCount = data.skipped || 0;
+    if (errorCount > 0 && successCount > 0) resultClass = 'partial';
+    else if (errorCount > 0 && successCount === 0) resultClass = 'error';
+    $('batch-result').className = 'batch-result ' + resultClass;
+    $('batch-result').innerHTML = '导入完成: 成功 ' + successCount + ' 条, 跳过 ' + skippedCount + ' 条, 失败 ' + errorCount + ' 条';
+    $('batch-result').style.display = 'block';
+    if (successCount > 0) { loadStudents(); loadFaces(); }
+  } catch(e) {
+    if (e instanceof SyntaxError) { toast('JSON格式错误，请检查', 'error'); return; }
+    if (e.message !== '需要登录') toast('导入失败: ' + e.message, 'error');
+  }
 }
 
 // ====== Faces ======
 async function loadFaces() {
   try {
-    // Load all students
-    const stuResp = await fetch(API + '/api/student?per_page=999');
+    const stuResp = await apiFetch('/api/student?per_page=999');
     const stuData = await stuResp.json();
     allFaceStudents = stuData.data || [];
 
-    // Load face features
-    const syncResp = await fetch(API + '/api/sync/features?since_version=0');
+    const syncResp = await apiFetch('/api/sync/features?since_version=0');
     const syncData = await syncResp.json();
     faceStudentMap = {};
     let globalVersion = 0;
-    if (syncData.features) syncData.features.forEach(f => {
+    if (syncData.features) syncData.features.forEach(function(f) {
       faceStudentMap[f.student_id] = { has_face: true, feature_version: f.feature_version };
       if (f.feature_version > globalVersion) globalVersion = f.feature_version;
     });
@@ -808,7 +1084,7 @@ async function loadFaces() {
     $('face-registered-count').textContent = Object.keys(faceStudentMap).length;
 
     renderFaceStudentList(allFaceStudents);
-  } catch(e) { console.error(e); }
+  } catch(e) { if (e.message !== '需要登录') console.error(e); }
 }
 
 function renderFaceStudentList(students) {
@@ -818,7 +1094,7 @@ function renderFaceStudentList(students) {
     return;
   }
   let html = '';
-  students.forEach(s => {
+  students.forEach(function(s) {
     const face = faceStudentMap[s.id];
     const isRegistered = face && face.has_face;
     const selected = selectedFaceStudentId === s.id;
@@ -836,20 +1112,19 @@ function renderFaceStudentList(students) {
 
 function filterFaceStudents() {
   const kw = $('face-search').value.toLowerCase();
-  const filtered = allFaceStudents.filter(s =>
-    s.name.toLowerCase().includes(kw) || s.stu_no.toLowerCase().includes(kw)
-  );
+  const filtered = allFaceStudents.filter(function(s) {
+    return s.name.toLowerCase().includes(kw) || s.stu_no.toLowerCase().includes(kw);
+  });
   renderFaceStudentList(filtered);
 }
 
 function selectFaceStudent(studentId) {
   selectedFaceStudentId = studentId;
-  // Update list selection
-  document.querySelectorAll('.face-student-item').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.face-student-item').forEach(function(el) { el.classList.remove('selected'); });
   const item = document.getElementById('face-item-' + studentId);
   if (item) item.classList.add('selected');
 
-  const student = allFaceStudents.find(s => s.id === studentId);
+  const student = allFaceStudents.find(function(s) { return s.id === studentId; });
   if (!student) return;
 
   const face = faceStudentMap[studentId];
@@ -867,7 +1142,6 @@ function selectFaceStudent(studentId) {
   $('btn-delete-face').style.display = isRegistered ? 'inline-flex' : 'none';
   $('btn-register-face').innerHTML = isRegistered ? '&#x1f504; 重新注册' : '&#x1f4f7; 注册人脸';
 
-  // Reset upload area
   $('upload-preview').style.display = 'block';
   $('upload-preview-img').style.display = 'none';
   $('face-photo').value = '';
@@ -893,7 +1167,7 @@ async function registerFaceForSelected() {
   formData.append('student_id', selectedFaceStudentId);
   formData.append('photo', photoFile);
   try {
-    const resp = await fetch(API + '/api/face/register', {method:'POST', body:formData});
+    const resp = await apiFetch('/api/face/register', {method:'POST', body:formData});
     const data = await resp.json();
     if (resp.ok) {
       toast('注册成功！版本号: ' + data.feature_version, 'success');
@@ -902,17 +1176,17 @@ async function registerFaceForSelected() {
     } else {
       toast(data.error||'注册失败', 'error');
     }
-  } catch(e) { toast('请求失败: '+e.message, 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败: '+e.message, 'error'); }
 }
 
 async function deleteFaceForSelected() {
   if (!selectedFaceStudentId) return;
   if (!confirm('确定删除该学生的人脸特征？')) return;
   try {
-    const resp = await fetch(API + '/api/face/student/' + selectedFaceStudentId, {method:'DELETE'});
+    const resp = await apiFetch('/api/face/student/' + selectedFaceStudentId, {method:'DELETE'});
     if (resp.ok) { toast('特征已删除', 'success'); loadFaces(); selectFaceStudent(selectedFaceStudentId); }
     else toast('删除失败', 'error');
-  } catch(e) { toast('请求失败', 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败', 'error'); }
 }
 
 // ====== Records ======
@@ -923,12 +1197,12 @@ async function loadRecords() {
   const res = $('rec-result').value; if (res) params.set('result', res);
   params.set('page', recordPage); params.set('per_page', 20);
   try {
-    const resp = await fetch(API + '/api/record?' + params.toString());
+    const resp = await apiFetch('/api/record?' + params.toString());
     const data = await resp.json();
     $('rec-total').textContent = data.total || 0;
     $('rec-filtered').textContent = data.total || 0;
     let html = '';
-    if (data.data) data.data.forEach(r => {
+    if (data.data) data.data.forEach(function(r) {
       const simDisplay = r.similarity != null ? (r.similarity * 100).toFixed(1) + '%' : '-';
       const simColor = r.similarity != null ? (r.similarity >= 0.5 ? 'var(--success)' : 'var(--danger)') : 'var(--text-muted)';
       const dirLabel = r.direction==='in'?'进入':(r.direction==='out'?'离开':'手动');
@@ -945,17 +1219,17 @@ async function loadRecords() {
         <td><button class="btn-icon danger" onclick="deleteRecord(${r.id})" title="删除">&#x1f5d1;</button></td></tr>`;
     });
     $('record-table').innerHTML = html || '<tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:24px">暂无记录</td></tr>';
-    renderPagination('record-pages', data.total, recordPage, p => { recordPage = p; loadRecords(); });
-  } catch(e) { toast('查询失败', 'error'); }
+    renderPagination('record-pages', data.total, recordPage, function(p) { recordPage = p; loadRecords(); });
+  } catch(e) { if (e.message !== '需要登录') toast('查询失败', 'error'); }
 }
 
 async function deleteRecord(id) {
   if (!confirm('确定删除该记录？')) return;
   try {
-    const resp = await fetch(API + '/api/record/' + id, {method:'DELETE'});
+    const resp = await apiFetch('/api/record/' + id, {method:'DELETE'});
     if (resp.ok) { toast('删除成功', 'success'); loadRecords(); }
     else toast('删除失败', 'error');
-  } catch(e) { toast('请求失败', 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败', 'error'); }
 }
 
 async function exportCSV() {
@@ -968,10 +1242,9 @@ async function exportCSV() {
 // Manual record
 function showManualRecordModal() {
   $('manual-record-modal-overlay').style.display = 'flex';
-  // Load student options
-  fetch(API + '/api/student?per_page=999').then(r=>r.json()).then(data => {
+  apiFetch('/api/student?per_page=999').then(function(r) { return r.json(); }).then(function(data) {
     let opts = '<option value="">-- 选择学生 --</option>';
-    if (data.data) data.data.forEach(s => {
+    if (data.data) data.data.forEach(function(s) {
       opts += `<option value="${s.id}">${s.name} (${s.stu_no})</option>`;
     });
     $('manual-student-id').innerHTML = opts;
@@ -983,34 +1256,104 @@ async function saveManualRecord() {
   if (!studentId) { toast('请选择学生', 'error'); return; }
   const direction = $('manual-direction').value;
   try {
-    const resp = await fetch(API + '/api/record', {
+    const resp = await apiFetch('/api/record', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({student_id:parseInt(studentId), device_sn:'MANUAL', direction:direction, result:'success', similarity:1.0})
     });
     if (resp.ok) { toast('记录已添加', 'success'); closeManualRecordModal(); loadRecords(); }
     else { const e = await resp.json(); toast(e.error||'添加失败', 'error'); }
-  } catch(e) { toast('请求失败', 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败', 'error'); }
 }
 
 // ====== Devices ======
 async function loadDevices() {
   try {
-    const resp = await fetch(API + '/api/heartbeat/status');
-    const data = await resp.json();
+    // Fetch both device registry and heartbeat status
+    const [devResp, hbResp] = await Promise.all([
+      apiFetch('/api/device').then(function(r) { return r.json(); }),
+      apiFetch('/api/heartbeat/status').then(function(r) { return r.json(); })
+    ]);
+    // Build heartbeat map by device_sn
+    var hbMap = {};
+    if (hbResp.devices) hbResp.devices.forEach(function(d) { hbMap[d.device_sn] = d; });
+    // Device list from registry (supports array or paginated response)
+    var devices = devResp.data || devResp.devices || devResp || [];
+    if (!Array.isArray(devices)) devices = [];
     let html = '';
-    if (data.devices) data.devices.forEach(d => {
+    devices.forEach(function(d) {
+      var hb = hbMap[d.device_sn] || {};
+      var isOnline = hb.is_online || false;
+      var lastHb = hb.last_heartbeat || '-';
       html += `<tr>
         <td style="font-family:monospace">${d.device_sn}</td>
         <td>${d.device_name||d.device_sn}</td>
         <td><span style="display:inline-flex;align-items:center;gap:6px">
-          <span class="status-dot ${d.is_online?'in':'out'}"></span>
-          <span style="color:${d.is_online?'var(--success)':'var(--text-muted)'}">${d.is_online?'在线':'离线'}</span>
+          <span class="status-dot ${isOnline?'in':'out'}"></span>
+          <span style="color:${isOnline?'var(--success)':'var(--text-muted)'}">${isOnline?'在线':'离线'}</span>
         </span></td>
-        <td style="font-family:monospace;font-size:12px">${d.last_heartbeat||'-'}</td></tr>`;
+        <td style="font-family:monospace;font-size:12px">${lastHb}</td>
+        <td>
+          <button class="btn-icon" onclick="editDevice(${d.id})" title="编辑">&#x270F;</button>
+          <button class="btn-icon danger" onclick="deleteDevice(${d.id})" title="删除">&#x1f5d1;</button>
+        </td></tr>`;
     });
-    $('device-table').innerHTML = html || '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:24px">暂无设备</td></tr>';
-  } catch(e) { console.error(e); }
+    $('device-table').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:24px">暂无设备</td></tr>';
+    $('dev-total-count').textContent = devices.length;
+  } catch(e) { if (e.message !== '需要登录') console.error(e); }
+}
+
+function showDeviceModal(editData) {
+  if (editData) {
+    $('device-modal-title').textContent = '编辑设备';
+    $('dev-edit-id').value = editData.id;
+    $('dev-sn').value = editData.device_sn;
+    $('dev-sn').readOnly = true;
+    $('dev-name').value = editData.device_name || '';
+  } else {
+    $('device-modal-title').textContent = '添加设备';
+    $('dev-edit-id').value = '';
+    $('dev-sn').value = '';
+    $('dev-sn').readOnly = false;
+    $('dev-name').value = '';
+  }
+  $('device-modal-overlay').style.display = 'flex';
+}
+function closeDeviceModal() { $('device-modal-overlay').style.display = 'none'; }
+async function saveDevice() {
+  const id = $('dev-edit-id').value;
+  const deviceSn = $('dev-sn').value.trim();
+  const deviceName = $('dev-name').value.trim();
+  if (!deviceSn) { toast('设备序列号为必填项', 'error'); return; }
+  try {
+    let resp;
+    if (id) {
+      resp = await apiFetch('/api/device/' + id, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_name:deviceName})});
+    } else {
+      resp = await apiFetch('/api/device', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_sn:deviceSn, device_name:deviceName})});
+    }
+    if (resp.ok) { toast(id?'更新成功':'添加成功', 'success'); closeDeviceModal(); loadDevices(); }
+    else { const e = await resp.json(); toast(e.error||'操作失败', 'error'); }
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败: '+e.message, 'error'); }
+}
+async function editDevice(id) {
+  try {
+    const resp = await apiFetch('/api/device/' + id);
+    if (resp.ok) {
+      const d = await resp.json();
+      showDeviceModal(d);
+    } else {
+      toast('设备不存在', 'error');
+    }
+  } catch(e) { if (e.message !== '需要登录') toast('加载失败', 'error'); }
+}
+async function deleteDevice(id) {
+  if (!confirm('确定删除该设备？')) return;
+  try {
+    const resp = await apiFetch('/api/device/' + id, {method:'DELETE'});
+    if (resp.ok) { toast('删除成功', 'success'); loadDevices(); }
+    else toast('删除失败', 'error');
+  } catch(e) { if (e.message !== '需要登录') toast('请求失败', 'error'); }
 }
 
 // ====== Pagination ======
@@ -1026,7 +1369,16 @@ function renderPagination(containerId, total, page, cb) {
 }
 
 // ====== Init ======
-loadDashboard();
+async function initApp() {
+  loadDashboard();
+  if (!dashboardTimer) {
+    dashboardTimer = setInterval(function() { loadDashboard(); }, 30000);
+  }
+}
+// Start: check auth first
+checkAuth().then(function(authed) {
+  if (authed) { initApp(); }
+});
 </script>
 </body>
 </html>'''

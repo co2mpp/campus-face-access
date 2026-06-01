@@ -72,7 +72,7 @@ export MYSQL_DB=smart_gate
 export SERVER_PORT=5000
 ```
 
-**重要**：`MYSQL_PASSWORD` 必须设置，程序不再内置默认密码。
+**重要**：`MYSQL_PASSWORD` 必须设置，程序不内置默认密码。
 
 ### 4. 启动服务端
 

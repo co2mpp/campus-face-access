@@ -265,11 +265,108 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 }
 .btn-config:hover{color:var(--text);border-color:var(--text-secondary)}
 
-/* Offline banner */
+/* Pending record badge */
+.pending-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(245,158,11,.15);color:var(--orange);
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;
+  border:1px solid rgba(245,158,11,.3);white-space:nowrap;
+}
+.pending-badge.hidden{display:none}
+
+/* Uptime display */
+.uptime-display{
+  font-family:"SF Mono","Cascadia Code",monospace;
+  font-size:12px;color:var(--text-secondary);
+  display:flex;align-items:center;gap:6px;
+}
+.uptime-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* Sync info */
+.sync-info{
+  font-family:"SF Mono","Cascadia Code",monospace;
+  font-size:11px;color:var(--text-muted);
+  display:flex;align-items:center;gap:6px;
+}
+.sync-info .sync-ver{color:var(--accent);font-weight:600}
+
+/* Pulse animation for similarity bar */
+@keyframes pulseBar{
+  0%{filter:brightness(1);box-shadow:0 0 4px rgba(59,130,246,.3)}
+  50%{filter:brightness(1.4);box-shadow:0 0 12px rgba(59,130,246,.6)}
+  100%{filter:brightness(1);box-shadow:0 0 4px rgba(59,130,246,.3)}
+}
+.sim-bar-fill.pulse{animation:pulseBar .6s ease-in-out 2}
+
+/* Recognition panel height transition */
+.recognition-panel{
+  transition:min-height .4s ease;
+}
+.recognition-waiting,.recognition-result{
+  transition:opacity .35s ease;
+}
+
+/* Manual open accent */
+.manual-accent{color:var(--green)}
+.manual-icon-circle{
+  width:60px;height:60px;border-radius:50%;
+  background:rgba(16,185,129,.12);border:2px solid var(--green);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:28px;margin-bottom:8px;
+}
+
+/* Offline banner enhanced */
 .offline-banner{
   background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
-  border-radius:8px;padding:8px 14px;margin:0 16px;
-  font-size:12px;color:var(--red);display:flex;align-items:center;gap:8px;
+  border-radius:8px;padding:10px 16px;margin:0 16px;
+  font-size:12px;color:var(--red);display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+}
+.offline-banner .offline-timer{font-weight:600;white-space:nowrap}
+.offline-banner .offline-queued{
+  background:rgba(239,68,68,.15);padding:2px 8px;border-radius:10px;
+  font-size:11px;white-space:nowrap;
+}
+.offline-banner .offline-sep{color:rgba(239,68,68,.4)}
+
+/* Config card enhanced */
+.config-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:36px;width:90%;max-width:500px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.config-card h3{font-size:20px;margin-bottom:8px}
+.config-card .cfg-subtitle{font-size:13px;color:var(--text-secondary);margin-bottom:24px}
+.config-card .cfg-row{
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;
+  padding:12px 16px;background:rgba(255,255,255,.03);border-radius:var(--radius-sm);
+  text-align:left;
+}
+.config-card .cfg-row .cfg-label{
+  font-size:13px;font-weight:600;color:var(--text);min-width:70px;
+}
+.config-card .cfg-row .cfg-arrow{color:var(--text-muted);font-size:18px}
+.config-card select{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;color:var(--text);font-size:14px;width:160px;
+}
+.config-card select:focus{border-color:var(--accent);outline:none}
+.config-card .hint{font-size:12px;color:var(--text-muted);margin:16px 0;line-height:1.5}
+.config-card .cfg-actions{display:flex;gap:10px;justify-content:center;margin-top:8px}
+.config-card .cfg-current{
+  font-size:11px;color:var(--text-muted);margin-top:12px;
+  padding:8px 14px;background:rgba(255,255,255,.02);border-radius:var(--radius-sm);
+  display:inline-block;
+}
+.config-card .cfg-current span{color:var(--accent);font-weight:600}
+.config-card .cfg-loading{
+  display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:13px;margin-top:8px;
+}
+.config-card .cfg-success{
+  color:var(--green);font-size:13px;font-weight:600;margin-top:8px;
+}
+.config-card .cfg-error{
+  color:var(--red);font-size:12px;margin-top:8px;
 }
 
 @media(max-width:1000px){
@@ -297,6 +394,7 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   </div>
 
   <div class="topbar-actions">
+    <span class="uptime-display" id="uptime-display"><span class="uptime-dot"></span>运行: --</span>
     <button class="dir-btn active" id="btn-dir-in" onclick="switchDirection('in')">&#x2b06; 进门</button>
     <button class="dir-btn" id="btn-dir-out" onclick="switchDirection('out')" {% if not out_enabled %}style="display:none"{% endif %}>&#x2b07; 出门</button>
     <button class="dir-btn manual-btn" onclick="manualOpen()">&#x1f513; 手动开门</button>
@@ -309,7 +407,10 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 
 <!-- Offline banner -->
 <div id="offline-banner" class="offline-banner" style="display:none">
-  &#x26a0; 网络已断开。终端将继续本地运行，记录将在恢复连接后自动同步。
+  <span>&#x26a0; 网络已断开</span>
+  <span class="offline-timer" id="offline-timer"></span>
+  <span class="offline-sep">|</span>
+  <span class="offline-queued" id="offline-queued">排队: 0 条</span>
 </div>
 
 <!-- ===== Main Layout ===== -->
@@ -363,7 +464,8 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
     <!-- Local records -->
     <div class="records-panel">
       <div class="records-header">
-        <span>&#x1f4cb; 本机最近记录</span>
+        <span style="display:flex;align-items:center;gap:8px">&#x1f4cb; 本机最近记录 <span class="pending-badge hidden" id="pending-badge" title="等待上传">0条待上传</span></span>
+        <span class="sync-info" id="sync-info">特征库 v<span class="sync-ver" id="sync-ver">-</span></span>
         <span class="device-id">{{device_sn}}</span>
       </div>
       <div class="records-list" id="records-list">
@@ -377,14 +479,23 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 <div class="config-overlay" id="config-overlay" style="display:{% if binding %}none{% else %}flex{% endif %}">
   <div class="config-card">
     <h3>&#x2699; 摄像头方向绑定</h3>
-    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">请为进门和出门分别选择摄像头</p>
-    <p style="font-size:13px;margin-bottom:6px;color:var(--text)">进门摄像头</p>
-    <select id="cfg-in"></select>
-    <p style="font-size:13px;margin-bottom:6px;margin-top:12px;color:var(--text)">出门摄像头</p>
-    <select id="cfg-out"></select>
+    <p class="cfg-subtitle">请为进门和出门分别选择摄像头设备</p>
+    <div class="cfg-row">
+      <span class="cfg-label">&#x2b06; 进门</span>
+      <span class="cfg-arrow">&#x27a1;</span>
+      <select id="cfg-in"></select>
+    </div>
+    <div class="cfg-row">
+      <span class="cfg-label">&#x2b07; 出门</span>
+      <span class="cfg-arrow">&#x27a1;</span>
+      <select id="cfg-out"></select>
+    </div>
     <p class="hint" id="cfg-msg">提示：选择"不使用"可关闭对应方向，单摄像头时可两个方向选同一个</p>
-    <button class="btn btn-primary" onclick="saveConfig()" id="cfg-save-btn">&#x1f4be; 保存并启动</button>
-    <button class="btn btn-ghost" onclick="skipConfig()" style="display:{% if binding %}inline-block{% else %}none{% endif %}">稍后配置</button>
+    <div id="cfg-status"></div>
+    <div class="cfg-actions">
+      <button class="btn btn-primary" onclick="saveConfig()" id="cfg-save-btn">&#x1f4be; 保存并启动</button>
+      <button class="btn btn-ghost" onclick="skipConfig()" style="display:{% if binding %}inline-block{% else %}none{% endif %}">稍后配置</button>
+    </div>
   </div>
 </div>
 
@@ -398,6 +509,8 @@ let events = [];
 let isOnline = false;
 let doorTimer = null;
 let cameraActive = IN_ENABLED || OUT_ENABLED;
+let offlineSince = null;
+let offlineTimerInterval = null;
 
 // Header clock
 function updateClock() {
@@ -484,11 +597,27 @@ async function pollStatus() {
   try {
     const resp = await fetch('/api/status');
     const data = await resp.json();
+    const wasOffline = !isOnline;
     isOnline = data.online;
     const statusEl = document.getElementById('header-status');
     statusEl.className = 'online-badge ' + (data.online ? 'online' : 'offline');
     statusEl.innerHTML = data.online ? '&#x2714; 在线' : '&#x26a0; 离线';
-    document.getElementById('offline-banner').style.display = data.online ? 'none' : 'flex';
+
+    // Offline banner with timer
+    const banner = document.getElementById('offline-banner');
+    if (data.online) {
+      banner.style.display = 'none';
+      offlineSince = null;
+      if (offlineTimerInterval) { clearInterval(offlineTimerInterval); offlineTimerInterval = null; }
+      document.getElementById('offline-timer').textContent = '';
+    } else {
+      banner.style.display = 'flex';
+      if (!offlineSince) {
+        offlineSince = Date.now();
+        updateOfflineTimer();
+        offlineTimerInterval = setInterval(updateOfflineTimer, 30000);
+      }
+    }
 
     if (data.binding) {
       cameraActive = data.in_enabled || data.out_enabled;
@@ -498,6 +627,8 @@ async function pollStatus() {
       if (document.getElementById('video-in')) document.getElementById('video-in').style.display = (currentDirection === 'in' && data.in_enabled) ? 'block' : 'none';
       if (document.getElementById('video-out')) document.getElementById('video-out').style.display = (currentDirection === 'out' && data.out_enabled) ? 'block' : 'none';
     }
+    // Update sync version
+    document.getElementById('sync-ver').textContent = data.feature_version || '-';
   } catch(e) {}
 
   // Poll events
@@ -508,9 +639,69 @@ async function pollStatus() {
       newEvents.forEach(e => addEvent(e));
     }
   } catch(e) {}
+
 }
 setInterval(pollStatus, 2000);
 pollStatus();
+
+// Update offline timer display
+function updateOfflineTimer() {
+  if (!offlineSince) return;
+  const elapsed = Math.floor((Date.now() - offlineSince) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+  document.getElementById('offline-timer').textContent = '已离线 ' + min + '分' + sec + '秒';
+}
+
+// Poll pending record count
+async function pollPendingCount() {
+  try {
+    const resp = await fetch('/api/pending_count');
+    const data = await resp.json();
+    const badge = document.getElementById('pending-badge');
+    if (data.count > 0) {
+      badge.textContent = data.count + '条待上传';
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+    // Also update offline banner queued count
+    const queued = document.getElementById('offline-queued');
+    if (queued) queued.textContent = '排队: ' + data.count + ' 条';
+  } catch(e) {}
+}
+setInterval(pollPendingCount, 10000);
+pollPendingCount();
+
+// Poll uptime
+async function pollUptime() {
+  try {
+    const resp = await fetch('/api/uptime');
+    const data = await resp.json();
+    const sec = data.uptime;
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    let text = '运行: ';
+    if (h > 0) text += h + 'h ' + m + 'm';
+    else if (m > 0) text += m + 'm ' + s + 's';
+    else text += s + 's';
+    document.getElementById('uptime-display').innerHTML = '<span class="uptime-dot"></span>' + text;
+  } catch(e) {}
+}
+setInterval(pollUptime, 30000);
+pollUptime();
+
+// Poll last sync info
+async function pollLastSync() {
+  try {
+    const resp = await fetch('/api/last_sync');
+    const data = await resp.json();
+    document.getElementById('sync-ver').textContent = 'v' + (data.feature_version || 0);
+  } catch(e) {}
+}
+setInterval(pollLastSync, 60000);
+pollLastSync();
 
 function addEvent(e) {
   events.unshift(e);
@@ -522,8 +713,15 @@ function addEvent(e) {
 function showRecognitionResult(e) {
   const waiting = document.getElementById('recognition-waiting');
   const result = document.getElementById('recognition-result');
-  waiting.style.display = 'none';
-  result.style.display = 'block';
+  waiting.style.opacity = '0';
+  setTimeout(() => {
+    waiting.style.display = 'none';
+    result.style.display = 'block';
+    result.style.opacity = '0';
+    requestAnimationFrame(() => {
+      result.style.opacity = '1';
+    });
+  }, 200);
 
   const success = e.result === 'success';
   const simPercent = (e.similarity * 100).toFixed(1);
@@ -532,14 +730,15 @@ function showRecognitionResult(e) {
   if (e.manual) {
     result.innerHTML = `
       <div style="text-align:center">
-        <div class="result-header-icon" style="color:var(--green)">&#x1f513;</div>
-        <div class="result-title" style="color:var(--green)">手动开门</div>
+        <div class="manual-icon-circle">&#x1f513;</div>
+        <div class="result-title manual-accent">手动开门</div>
       </div>
-      <div class="result-info-card">
-        <div style="display:flex;align-items:center;gap:10px">
+      <div class="result-info-card" style="border:1px solid rgba(16,185,129,.2);background:rgba(16,185,129,.06)">
+        <div style="display:flex;align-items:center;gap:10px;justify-content:center">
           <span class="dir-tag ${e.direction==='in'?'in':'out'}">${e.direction==='in'?'&#x2b06; 进门':'&#x2b07; 出门'}</span>
           <span style="font-family:monospace;font-size:12px;color:var(--text-secondary)">${e.time}</span>
         </div>
+        <div style="font-size:13px;font-weight:600;color:var(--green);margin-top:8px">&#x1f513; 管理员手动放行</div>
       </div>
       <div class="door-status-msg door-open">&#x1f513; 门已开启，请通行</div>
     `;
@@ -556,7 +755,7 @@ function showRecognitionResult(e) {
           <span style="color:var(--text-secondary)">相似度</span>
           <span class="sim-value" style="color:${simColor}">${simPercent}%</span>
           <div class="sim-bar-track">
-            <div class="sim-bar-fill" style="width:${Math.min(100,e.similarity*100)}%;background:${simColor}"></div>
+            <div class="sim-bar-fill pulse" style="width:${Math.min(100,e.similarity*100)}%;background:${simColor}"></div>
           </div>
         </div>
       </div>
@@ -566,6 +765,11 @@ function showRecognitionResult(e) {
       </div>
       <div class="door-status-msg door-open">&#x1f513; 门已开启，请通行</div>
     `;
+    // Remove pulse class after animation completes
+    setTimeout(() => {
+      const bar = result.querySelector('.sim-bar-fill.pulse');
+      if (bar) bar.classList.remove('pulse');
+    }, 1500);
   } else {
     result.innerHTML = `
       <div style="text-align:center">
@@ -579,9 +783,9 @@ function showRecognitionResult(e) {
           <span style="color:var(--text-secondary)">相似度</span>
           <span class="sim-value" style="color:var(--red)">${simPercent}%</span>
           <div class="sim-bar-track">
-            <div class="sim-bar-fill" style="width:${Math.min(100,e.similarity*100)}%;background:var(--red)"></div>
+            <div class="sim-bar-fill pulse" style="width:${Math.min(100,e.similarity*100)}%;background:var(--red)"></div>
           </div>
-          <span style="font-size:11px;color:var(--text-muted)">阈值 60%</span>
+          <span style="font-size:11px;color:var(--text-muted)">阈值 50%</span>
         </div>
       </div>
       <div class="result-meta">
@@ -590,6 +794,10 @@ function showRecognitionResult(e) {
       </div>
       <div class="door-status-msg door-closed">&#x1f512; 门已关闭</div>
     `;
+    setTimeout(() => {
+      const bar = result.querySelector('.sim-bar-fill.pulse');
+      if (bar) bar.classList.remove('pulse');
+    }, 1500);
   }
 
   // Flash camera
@@ -602,8 +810,12 @@ function showRecognitionResult(e) {
   // Reset after 6s
   if (doorTimer) clearTimeout(doorTimer);
   doorTimer = setTimeout(() => {
-    result.style.display = 'none';
-    waiting.style.display = 'flex';
+    result.style.opacity = '0';
+    setTimeout(() => {
+      result.style.display = 'none';
+      waiting.style.display = 'flex';
+      waiting.style.opacity = '1';
+    }, 350);
   }, 6000);
 }
 
@@ -640,6 +852,12 @@ async function loadCameras() {
     if (binding) {
       selIn.value = binding.in >= 0 ? binding.in : -1;
       selOut.value = binding.out >= 0 ? binding.out : -1;
+      // Show current binding status
+      const statusEl = document.getElementById('cfg-status');
+      const inLabel = binding.in >= 0 ? ('#' + binding.in) : '未绑定';
+      const outLabel = binding.out >= 0 ? ('#' + binding.out) : '未绑定';
+      const singleNote = (binding.in >= 0 && binding.out >= 0 && binding.in === binding.out) ? ' (单摄像头共用)' : '';
+      statusEl.innerHTML = '<div class="cfg-current">当前绑定: 进门=<span>' + inLabel + '</span> | 出门=<span>' + outLabel + '</span>' + singleNote + '</div>';
     }
   } catch(e) { console.error(e); }
 }
@@ -655,20 +873,32 @@ function skipConfig() {
 async function saveConfig() {
   const inIdx = document.getElementById('cfg-in').value;
   const outIdx = document.getElementById('cfg-out').value;
+  const saveBtn = document.getElementById('cfg-save-btn');
+  const statusEl = document.getElementById('cfg-status');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中...';
+  statusEl.innerHTML = '<div class="cfg-loading">&#x23f3; 正在保存配置...</div>';
   try {
     const formData = new FormData();
     formData.append('in_index', inIdx);
     formData.append('out_index', outIdx);
     const resp = await fetch('/config/save', {method:'POST', body:formData});
     if (resp.ok) {
-      document.getElementById('config-overlay').style.display = 'none';
-      location.reload();
+      statusEl.innerHTML = '<div class="cfg-success">&#x2705; 配置保存成功，正在重启识别线程...</div>';
+      setTimeout(() => {
+        document.getElementById('config-overlay').style.display = 'none';
+        location.reload();
+      }, 1200);
     } else {
       const text = await resp.text();
-      document.getElementById('cfg-msg').innerHTML = '<span style="color:var(--red)">' + text + '</span>';
+      statusEl.innerHTML = '<div class="cfg-error">&#x274c; 保存失败: ' + text + '</div>';
+      saveBtn.disabled = false;
+      saveBtn.textContent = '&#x1f4be; 保存并启动';
     }
   } catch(e) {
-    document.getElementById('cfg-msg').innerHTML = '<span style="color:var(--red)">配置失败: ' + e.message + '</span>';
+    statusEl.innerHTML = '<div class="cfg-error">&#x274c; 配置失败: ' + e.message + '</div>';
+    saveBtn.disabled = false;
+    saveBtn.textContent = '&#x1f4be; 保存并启动';
   }
 }
 
@@ -871,39 +1101,65 @@ def create_client_app():
         error = request.args.get('error', '')
 
         CONFIG_HTML = '''<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>摄像头配置</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>摄像头配置 — 校园门禁系统</title>
 <style>
-body{font-family:"Microsoft YaHei",sans-serif;background:#f8fafc;color:#1e293b;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px;width:90%;max-width:440px;text-align:center}
-h3{font-size:18px;margin-bottom:18px}
-select{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;color:#1e293b;font-size:14px;width:200px;margin:6px}
-.btn{padding:10px 24px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;margin:4px}
-.btn-blue{background:#3b82f6;color:#fff}.btn-red{background:#ef4444;color:#fff}
-.btn-ghost{background:transparent;color:#94a3b8;border:1px solid #e2e8f0}
-.error{color:#ef4444;font-size:12px}
-.hint{font-size:11px;color:#94a3b8;margin-top:12px}
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--text:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#64748b;--accent:#3b82f6;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px;width:90%;max-width:500px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.card h3{font-size:20px;margin-bottom:6px}
+.card .subtitle{font-size:13px;color:var(--text-secondary);margin-bottom:24px}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px 16px;background:rgba(255,255,255,.03);border-radius:10px;text-align:left}
+.row .label{font-size:13px;font-weight:600;color:var(--text);min-width:60px}
+.row .arrow{color:var(--text-muted);font-size:16px;flex-shrink:0}
+select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;width:170px;outline:none}
+select:focus{border-color:var(--accent)}
+.btn{padding:10px 24px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;margin:4px;transition:all .15s}
+.btn-blue{background:var(--accent);color:#fff}.btn-blue:hover{background:#2563eb}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--text-muted);color:var(--text)}
+.error{color:var(--red);font-size:12px;margin-top:12px;padding:8px 14px;background:rgba(239,68,68,.1);border-radius:8px;display:inline-block}
+.hint{font-size:12px;color:var(--text-muted);margin-top:16px;line-height:1.5}
+.current{font-size:11px;color:var(--text-muted);margin-top:12px;padding:8px 14px;background:rgba(255,255,255,.02);border-radius:10px;display:inline-block}
+.current span{color:var(--accent);font-weight:600}
+.actions{display:flex;gap:10px;justify-content:center;margin-top:8px}
 </style></head>
-<body><div class="card">
+<body>
+<div class="card">
 <h3>&#x2699; 摄像头方向绑定</h3>
+<p class="subtitle">请为进门和出门分别选择摄像头设备</p>
 <form method="post" action="/config/save">
-<p style="font-size:12px;color:#94a3b8;margin-bottom:4px">进门摄像头</p>
-<select name="in_index">
-<option value="-1" {% if not binding or binding['in'] < 0 %}selected{% endif %}>不使用</option>
-{% for cam in cameras %}<option value="{{cam.index}}" {% if binding and binding['in']==cam.index %}selected{% endif %}>{{cam.name}}</option>{% endfor %}
-</select>
-<p style="font-size:12px;color:#94a3b8;margin-bottom:4px;margin-top:12px">出门摄像头</p>
-<select name="out_index">
-<option value="-1" {% if not binding or binding['out'] < 0 %}selected{% endif %}>不使用</option>
-{% for cam in cameras %}<option value="{{cam.index}}" {% if binding and binding['out']==cam.index %}selected{% endif %}>{{cam.name}}</option>{% endfor %}
-</select>
-{% if error %}<p class="error">{{error}}</p>{% endif %}
+<div class="row">
+  <span class="label">&#x2b06; 进门</span>
+  <span class="arrow">&#x27a1;</span>
+  <select name="in_index">
+    <option value="-1" {% if not binding or binding['in'] < 0 %}selected{% endif %}>不使用</option>
+    {% for cam in cameras %}<option value="{{cam.index}}" {% if binding and binding['in']==cam.index %}selected{% endif %}>{{cam.name}}</option>{% endfor %}
+  </select>
+</div>
+<div class="row">
+  <span class="label">&#x2b07; 出门</span>
+  <span class="arrow">&#x27a1;</span>
+  <select name="out_index">
+    <option value="-1" {% if not binding or binding['out'] < 0 %}selected{% endif %}>不使用</option>
+    {% for cam in cameras %}<option value="{{cam.index}}" {% if binding and binding['out']==cam.index %}selected{% endif %}>{{cam.name}}</option>{% endfor %}
+  </select>
+</div>
+{% if binding %}
+<div class="current">
+  当前绑定: 进门=<span>{% if binding['in'] >= 0 %}#{{binding['in']}}{% else %}未绑定{% endif %}</span> | 出门=<span>{% if binding['out'] >= 0 %}#{{binding['out']}}{% else %}未绑定{% endif %}</span>
+  {% if binding['in'] >= 0 and binding['out'] >= 0 and binding['in'] == binding['out'] %}(单摄像头共用){% endif %}
+</div>
+{% endif %}
+{% if error %}<p class="error">&#x274c; {{error}}</p>{% endif %}
 <p class="hint">提示：选择"不使用"可关闭对应方向；单摄像头时可两个方向选同一个</p>
-<p style="margin-top:18px">
+<div class="actions">
   <button type="submit" class="btn btn-blue">&#x1f4be; 保存并启动</button>
   <a href="/"><button type="button" class="btn btn-ghost">取消</button></a>
-</p>
+</div>
 </form>
-</div></body></html>'''
+</div>
+</body></html>'''
         return render_template_string(CONFIG_HTML, cameras=cameras, binding=binding, error=error)
 
     @app.route('/config/save', methods=['POST'])
@@ -944,6 +1200,50 @@ select{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10
             'out_enabled': out_enabled,
             'single_camera': single_camera,
         })
+
+    @app.route('/api/pending_count')
+    def pending_count():
+        """返回待上传（离线缓存）记录数量"""
+        from client.config import get_db
+        conn = get_db()
+        try:
+            count = conn.execute("SELECT COUNT(*) FROM pending_record").fetchone()[0]
+            return jsonify({'count': count})
+        finally:
+            conn.close()
+
+    @app.route('/api/uptime')
+    def uptime():
+        """返回客户端运行时长（秒）"""
+        uptime_seconds = time.time() - app.config.get('start_time', time.time())
+        return jsonify({'uptime': int(uptime_seconds)})
+
+    @app.route('/api/last_sync')
+    def last_sync():
+        """返回最近一次特征同步信息"""
+        from client.config import get_db
+        conn = get_db()
+        try:
+            version = conn.execute("SELECT value FROM config WHERE key='feature_version'").fetchone()
+            sync_version = int(version['value']) if version else 0
+            return jsonify({'feature_version': sync_version})
+        finally:
+            conn.close()
+
+    @app.route('/api/manual_open', methods=['POST'])
+    def manual_open():
+        """手动开门 — 转发到服务端"""
+        import requests as req
+        try:
+            data = request.get_json(silent=True) or {}
+            resp = req.post(
+                f'{SERVER_URL}/api/record/manual-open',
+                json={'device_sn': data.get('device_sn', DEVICE_SN)},
+                timeout=5
+            )
+            return jsonify(resp.json()), resp.status_code
+        except Exception:
+            return jsonify({'error': '服务端不可用'}), 503
 
     return app
 
@@ -1114,6 +1414,7 @@ def run_client():
 
     print(f"客户端 Web 控制台: http://127.0.0.1:{CLIENT_PORT}")
     print("按 Ctrl+C 退出")
+    client_app.config['start_time'] = time.time()
     client_app.run(host='0.0.0.0', port=CLIENT_PORT, debug=False)
 
 

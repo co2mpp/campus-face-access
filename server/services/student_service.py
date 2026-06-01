@@ -23,12 +23,14 @@ class StudentService:
     def get_by_stu_no(self, stu_no: str) -> Student | None:
         return self.session.query(Student).filter(Student.stu_no == stu_no).first()
 
-    def list_all(self, keyword: str = None, page: int = 1, per_page: int = 20) -> tuple:
+    def list_all(self, keyword: str = None, status: str = None, page: int = 1, per_page: int = 20) -> tuple:
         q = self.session.query(Student)
         if keyword:
             q = q.filter(
                 or_(Student.name.like(f'%{keyword}%'), Student.stu_no.like(f'%{keyword}%'))
             )
+        if status and status in ('in', 'out'):
+            q = q.filter(Student.status == status)
         total = q.count()
         students = q.order_by(Student.id).offset((page - 1) * per_page).limit(per_page).all()
         return students, total

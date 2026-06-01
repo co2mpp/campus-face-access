@@ -1,4 +1,5 @@
 """服务端 Flask 主应用 — 监听 5000 端口"""
+import os
 from flask import Flask
 from flask_cors import CORS
 from sqlalchemy import create_engine
@@ -21,6 +22,7 @@ def get_insightface_app():
 
 def create_app():
     app = Flask(__name__)
+    app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
     CORS(app)
 
     engine = create_engine(SQLALCHEMY_DATABASE_URI, pool_pre_ping=True)
@@ -48,12 +50,18 @@ def create_app():
     from server.routes.record import bp as record_bp
     from server.routes.heartbeat import bp as heartbeat_bp
     from server.routes.admin import bp as admin_bp, INDEX_REDIRECT
+    from server.routes.dashboard import bp as dashboard_bp
+    from server.routes.device import bp as device_bp
+    from server.routes.auth import bp as auth_bp
     app.register_blueprint(student_bp)
     app.register_blueprint(face_bp)
     app.register_blueprint(sync_bp)
     app.register_blueprint(record_bp)
     app.register_blueprint(heartbeat_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(device_bp)
+    app.register_blueprint(auth_bp)
 
     # 根路径 → 管理后台
     from flask import render_template_string
