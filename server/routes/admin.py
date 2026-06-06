@@ -159,9 +159,14 @@ tr:hover td { background:#f1f5f9; }
 .btn-ghost { background:transparent; color:var(--text-secondary); border:1px solid var(--border); }
 .btn-ghost:hover { border-color:var(--text-muted); color:var(--text); }
 .btn-sm { padding:4px 10px; font-size:12px; }
-.btn-icon { padding:6px; background:transparent; border:none; cursor:pointer; border-radius:4px; color:var(--text-secondary); }
-.btn-icon:hover { color:var(--primary); background:#f1f5f9; }
-.btn-icon.danger:hover { color:var(--danger); background:#fef2f2; }
+.btn-icon {
+  width:32px;height:32px;padding:0;background:transparent;border:none;cursor:pointer;
+  border-radius:6px;color:var(--text-muted);display:inline-flex;
+  align-items:center;justify-content:center;transition:all .15s;
+}
+.btn-icon:hover { color:var(--primary); background:rgba(37,99,235,.08); }
+.btn-icon.danger:hover { color:var(--danger); background:rgba(239,68,68,.08); }
+.btn-icon svg { width:16px; height:16px; }
 
 /* ===== Forms ===== */
 input, select, textarea {
@@ -953,8 +958,8 @@ async function loadStudents() {
         </span></td>
         <td><span style="color:${hasFace?'var(--success)':'var(--text-muted)'}">${hasFace?'&#x2713; 已注册':'&#x2717; 未注册'}</span></td>
         <td>
-          <button class="btn-icon" onclick="editStudent(${s.id})" title="编辑">&#x270F;</button>
-          <button class="btn-icon danger" onclick="deleteStudent(${s.id})" title="删除">&#x1f5d1;</button>
+          <button class="btn-icon" onclick="editStudent(${s.id})" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn-icon danger" onclick="deleteStudent(${s.id})" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
         </td></tr>`;
     });
     $('student-table').innerHTML = html || '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:24px">暂无学生</td></tr>';
@@ -1216,7 +1221,7 @@ async function loadRecords() {
         <td><span class="badge badge-${r.result||'success'}">${r.result==='success'?'&#x2713; 成功':'&#x2717; 失败'}</span></td>
         <td style="font-weight:500;color:${simColor}">${simDisplay}</td>
         <td style="font-family:monospace;font-size:12px">${r.device_sn||'-'}</td>
-        <td><button class="btn-icon danger" onclick="deleteRecord(${r.id})" title="删除">&#x1f5d1;</button></td></tr>`;
+        <td><button class="btn-icon danger" onclick="deleteRecord(${r.id})" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></td></tr>`;
     });
     $('record-table').innerHTML = html || '<tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:24px">暂无记录</td></tr>';
     renderPagination('record-pages', data.total, recordPage, function(p) { recordPage = p; loadRecords(); });
@@ -1294,8 +1299,8 @@ async function loadDevices() {
         </span></td>
         <td style="font-family:monospace;font-size:12px">${lastHb}</td>
         <td>
-          <button class="btn-icon" onclick="editDevice(${d.id})" title="编辑">&#x270F;</button>
-          <button class="btn-icon danger" onclick="deleteDevice(${d.id})" title="删除">&#x1f5d1;</button>
+          <button class="btn-icon" onclick="editDevice(${d.id})" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn-icon danger" onclick="deleteDevice(${d.id})" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
         </td></tr>`;
     });
     $('device-table').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:24px">暂无设备</td></tr>';

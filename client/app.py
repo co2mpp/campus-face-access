@@ -96,36 +96,45 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 .online-badge.offline{color:var(--red);background:rgba(239,68,68,0.1)}
 
 /* ===== Main Layout ===== */
-.main-layout{display:grid;grid-template-columns:1fr 360px;height:calc(100vh - 56px);gap:0}
-.camera-section{
-  display:flex;flex-direction:column;padding:16px;
-  border-right:1px solid var(--border);
+.main-layout{
+  display:grid;grid-template-columns:1fr 380px;
+  height:calc(100vh - 56px);gap:0;overflow:hidden;
 }
-.info-section{display:flex;flex-direction:column;padding:16px;gap:16px;overflow-y:auto}
+.camera-section{
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;border-right:1px solid var(--border);
+  position:relative;min-height:0;
+}
+.info-section{
+  display:flex;flex-direction:column;padding:16px;gap:12px;
+  overflow-y:auto;min-height:0;
+}
 
 /* ===== Camera Area ===== */
 .camera-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;
+  position:absolute;top:16px;left:24px;z-index:10;
+  display:flex;align-items:center;gap:10px;
 }
 .camera-dir-tag{
-  display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+  display:inline-flex;align-items:center;gap:6px;padding:5px 14px;
   border-radius:20px;font-size:13px;font-weight:600;
 }
 .camera-dir-tag.in{background:rgba(59,130,246,.2);color:var(--accent)}
 .camera-dir-tag.out{background:rgba(249,115,22,.2);color:var(--orange)}
-.camera-id{font-size:12px;color:var(--text-muted)}
+.camera-id{font-size:11px;color:var(--text-muted)}
 
 .camera-viewport{
-  flex:1;background:#000;border-radius:var(--radius);position:relative;
+  background:#000;border-radius:var(--radius);position:relative;
   overflow:hidden;display:flex;align-items:center;justify-content:center;
-  border:1px solid var(--border);min-height:0;
+  border:1px solid var(--border);width:95%;max-width:640px;
+  aspect-ratio:4/3;
 }
 .camera-viewport img{width:100%;height:100%;object-fit:cover;display:block}
 .camera-placeholder{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   color:var(--text-muted);text-align:center;
 }
-.camera-placeholder .cam-icon{font-size:56px;margin-bottom:12px;opacity:.4}
+.camera-placeholder .cam-icon{font-size:48px;margin-bottom:10px;opacity:.4}
 .camera-placeholder p{font-size:15px;color:var(--text-secondary);margin-bottom:4px}
 .camera-placeholder .hint{font-size:12px;color:var(--text-muted)}
 
@@ -135,7 +144,7 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   justify-content:center;pointer-events:none;z-index:2;
 }
 .scan-frame{
-  width:200px;height:200px;border:2px solid rgba(59,130,246,.6);border-radius:20px;position:relative;
+  width:180px;height:180px;border:2px solid rgba(59,130,246,.6);border-radius:20px;position:relative;
 }
 .scan-frame::before,.scan-frame::after{content:'';position:absolute;width:24px;height:24px;border-radius:6px}
 .scan-frame::before{top:-2px;left:-2px;border-top:3px solid #60a5fa;border-left:3px solid #60a5fa}
@@ -159,49 +168,38 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 .result-flash.success{background:rgba(16,185,129,.12);border:3px solid var(--green)}
 .result-flash.fail{background:rgba(239,68,68,.12);border:3px solid var(--red)}
 
-/* Camera action buttons */
-.camera-actions{display:flex;gap:12px;margin-top:12px}
-.camera-actions .btn-action{
-  flex:1;padding:14px;border:none;border-radius:var(--radius-sm);cursor:pointer;
-  font-size:15px;font-weight:600;transition:all .15s;display:flex;
-  align-items:center;justify-content:center;gap:8px;
-}
-.btn-capture{background:var(--accent);color:#fff}
-.btn-capture:hover{background:var(--accent-hover)}
-.btn-simulate{background:var(--purple);color:#fff}
-.btn-simulate:hover{background:#7c3aed}
-
 /* ===== Recognition Area ===== */
 .recognition-panel{
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:24px;text-align:center;min-height:220px;display:flex;
+  padding:20px 16px;text-align:center;display:flex;
   flex-direction:column;align-items:center;justify-content:center;
+  flex-shrink:0;
 }
-.recognition-waiting .waiting-icon{font-size:52px;color:var(--text-muted);margin-bottom:12px;opacity:.5}
-.recognition-waiting p{font-size:15px;color:var(--text-secondary)}
-.recognition-waiting .sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.recognition-waiting .waiting-icon{font-size:36px;color:var(--text-muted);margin-bottom:8px;opacity:.5}
+.recognition-waiting p{font-size:14px;color:var(--text-secondary)}
+.recognition-waiting .sub{font-size:12px;color:var(--text-muted);margin-top:2px}
 /* Recognition result */
 .recognition-result{display:none;text-align:center;width:100%}
-.recognition-result .result-header-icon{font-size:44px;margin-bottom:6px}
-.recognition-result .result-title{font-size:22px;font-weight:700;margin-bottom:12px}
+.recognition-result .result-header-icon{font-size:28px;margin-bottom:4px}
+.recognition-result .result-title{font-size:17px;font-weight:700;margin-bottom:8px}
 .recognition-result .result-info-card{
   background:rgba(255,255,255,.04);border-radius:var(--radius-sm);
-  padding:14px;margin-bottom:12px;text-align:left;
+  padding:10px;margin-bottom:8px;text-align:left;
 }
-.recognition-result .result-name{font-size:20px;font-weight:700}
-.recognition-result .result-stuno{font-family:monospace;font-size:12px;color:var(--text-secondary);margin-top:2px}
-.recognition-result .sim-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px}
-.recognition-result .sim-value{font-weight:700;font-size:18px}
-.recognition-result .sim-bar-track{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.recognition-result .result-name{font-size:17px;font-weight:700}
+.recognition-result .result-stuno{font-family:monospace;font-size:11px;color:var(--text-secondary);margin-top:1px}
+.recognition-result .sim-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px}
+.recognition-result .sim-value{font-weight:700;font-size:15px}
+.recognition-result .sim-bar-track{flex:1;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
 .recognition-result .sim-bar-fill{height:100%;border-radius:3px;transition:width .3s}
-.recognition-result .result-meta{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12px;color:var(--text-secondary)}
+.recognition-result .result-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--text-secondary)}
 .recognition-result .dir-tag{
-  padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;
+  padding:2px 10px;border-radius:20px;font-size:10px;font-weight:600;
 }
 .recognition-result .dir-tag.in{background:rgba(59,130,246,.2);color:var(--accent)}
 .recognition-result .dir-tag.out{background:rgba(249,115,22,.2);color:var(--orange)}
 .recognition-result .door-status-msg{
-  padding:10px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;margin-top:10px;
+  padding:8px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-top:8px;
 }
 .recognition-result .door-open{background:var(--green);color:#fff}
 .recognition-result .door-closed{background:rgba(255,255,255,.06);color:var(--text-muted)}
@@ -369,9 +367,11 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   color:var(--red);font-size:12px;margin-top:8px;
 }
 
-@media(max-width:1000px){
+@media(max-width:800px){
   .main-layout{grid-template-columns:1fr}
-  .camera-section{border-right:none;border-bottom:1px solid var(--border)}
+  .camera-section{border-right:none;border-bottom:1px solid var(--border);padding:12px}
+  .camera-viewport{width:95%;max-width:100%;aspect-ratio:4/3}
+  .scan-frame{width:120px;height:120px}
   .topbar-center{display:none}
 }
 </style>
@@ -415,7 +415,7 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 
 <!-- ===== Main Layout ===== -->
 <div class="main-layout">
-  <!-- Left: Camera Section -->
+  <!-- Left: Camera -->
   <div class="camera-section">
     <div class="camera-header">
       <span class="camera-dir-tag in" id="camera-dir-label">&#x2b06; 进门通道</span>
@@ -432,7 +432,7 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
       <div class="camera-placeholder" id="camera-placeholder" style="display:{% if in_enabled or out_enabled %}none{% else %}flex{% endif %}">
         <span class="cam-icon">&#x1f4f7;</span>
         <p>摄像头未启动</p>
-        <span class="hint">点击下方按钮启动摄像头</span>
+        <span class="hint">请在配置页面绑定摄像头</span>
       </div>
       <div class="scan-overlay" id="scan-overlay" style="display:{% if in_enabled or out_enabled %}flex{% else %}none{% endif %}">
         <div class="scan-frame">
@@ -442,30 +442,23 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
       </div>
       <div class="result-flash" id="flash"></div>
     </div>
-
-    <div class="camera-actions">
-      <button class="btn-action btn-capture" onclick="triggerCapture()">&#x1f4f7; 拍照识别</button>
-      <button class="btn-action btn-simulate" onclick="triggerSimulate()">&#x1f9d1; 模拟识别</button>
-    </div>
   </div>
 
-  <!-- Right: Info Section -->
+  <!-- Right: Results (top) + Records (bottom) -->
   <div class="info-section">
-    <!-- Recognition panel -->
     <div class="recognition-panel" id="recognition-panel">
       <div class="recognition-waiting" id="recognition-waiting">
         <div class="waiting-icon">&#x1f464;</div>
         <p>等待识别...</p>
-        <p class="sub">请点击识别按钮或模拟</p>
+        <p class="sub">摄像头已就绪</p>
       </div>
       <div class="recognition-result" id="recognition-result"></div>
     </div>
 
-    <!-- Local records -->
     <div class="records-panel">
       <div class="records-header">
         <span style="display:flex;align-items:center;gap:8px">&#x1f4cb; 本机最近记录 <span class="pending-badge hidden" id="pending-badge" title="等待上传">0条待上传</span></span>
-        <span class="sync-info" id="sync-info">特征库 v<span class="sync-ver" id="sync-ver">-</span></span>
+        <span class="sync-info" id="sync-info">v<span class="sync-ver" id="sync-ver">-</span></span>
         <span class="device-id">{{device_sn}}</span>
       </div>
       <div class="records-list" id="records-list">
