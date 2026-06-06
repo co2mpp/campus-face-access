@@ -525,6 +525,7 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
       <div class="badge badge-version" style="display:flex;align-items:center;gap:6px">
         &#x1f512; 全局版本 <span id="face-global-version">v-</span> &middot; 已注册 <span id="face-registered-count">0</span> 人
       </div>
+      <button class="btn btn-outline" onclick="showBatchFaceModal()">&#x1f4c1; 批量注册</button>
     </div>
 
     <div class="face-layout">
@@ -703,6 +704,31 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeDeviceModal()">取消</button>
         <button class="btn btn-primary" onclick="saveDevice()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Face Registration Modal -->
+  <div class="modal-overlay" id="batch-face-modal-overlay">
+    <div class="modal" style="max-width:600px">
+      <h3>&#x1f4c1; 批量人脸注册</h3>
+      <p style="font-size:12px;color:var(--text-secondary);margin:8px 0">选择包含人脸照片的文件夹，文件名格式: <b>学号_姓名.jpg</b></p>
+      <div style="margin:16px 0">
+        <input type="file" id="batch-face-input" webkitdirectory multiple onchange="previewBatchFiles()" style="display:block;width:100%">
+      </div>
+      <div id="batch-face-file-list" style="max-height:200px;overflow-y:auto;font-size:12px;margin-bottom:12px;border:1px solid var(--border);border-radius:6px;padding:8px;display:none">
+      </div>
+      <div id="batch-face-progress" style="display:none;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <progress id="batch-face-bar" value="0" max="100" style="flex:1;height:8px;border-radius:4px"></progress>
+          <span id="batch-face-pct" style="font-size:13px;font-weight:600">0%</span>
+        </div>
+        <div id="batch-face-status" style="font-size:12px;color:var(--text-secondary);max-height:160px;overflow-y:auto"></div>
+      </div>
+      <div id="batch-face-result" style="display:none;padding:10px;border-radius:6px;font-size:13px;font-weight:600;margin-bottom:12px"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeBatchFaceModal()">取消</button>
+        <button class="btn btn-primary" id="btn-start-batch-face" disabled onclick="startBatchFace()">开始注册</button>
       </div>
     </div>
   </div>
@@ -1192,6 +1218,142 @@ async function deleteFaceForSelected() {
     if (resp.ok) { toast('特征已删除', 'success'); loadFaces(); selectFaceStudent(selectedFaceStudentId); }
     else toast('删除失败', 'error');
   } catch(e) { if (e.message !== '需要登录') toast('请求失败', 'error'); }
+}
+
+// ====== Batch Face Registration ======
+let batchFaceFiles = [];
+function showBatchFaceModal() { $('batch-face-modal-overlay').style.display = 'flex'; }
+function closeBatchFaceModal() {
+  $('batch-face-modal-overlay').style.display = 'none';
+  $('batch-face-input').value = '';
+  $('batch-face-file-list').style.display = 'none';
+  $('batch-face-progress').style.display = 'none';
+  $('batch-face-result').style.display = 'none';
+  $('btn-start-batch-face').disabled = true;
+  batchFaceFiles = [];
+}
+function previewBatchFiles() {
+  const input = $('batch-face-input');
+  batchFaceFiles = Array.from(input.files).filter(function(f) {
+    return /\.(jpg|jpeg|png)$/i.test(f.name);
+  });
+  const list = $('batch-face-file-list');
+  if (batchFaceFiles.length === 0) {
+    list.style.display = 'none';
+    $('btn-start-batch-face').disabled = true;
+    return;
+  }
+  list.style.display = 'block';
+  var html = '<table style="width:100%;font-size:12px"><thead><tr><th style="text-align:left">文件名</th><th style="text-align:left">解析结果</th></tr></thead><tbody>';
+  var valid = 0;
+  batchFaceFiles.forEach(function(f) {
+    var name = f.name.replace(/\.[^.]+$/, '');
+    var m = name.match(/^(\d+)_(.+)/);
+    var parsed = m ? '<span style="color:var(--success)">' + m[1] + ' / ' + m[2] + '</span>' : '<span style="color:var(--danger)">格式不正确</span>';
+    if (m) valid++;
+    html += '<tr><td style="padding:2px 4px">' + f.name + '</td><td style="padding:2px 4px">' + parsed + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">共 ' + batchFaceFiles.length + ' 个文件，' + valid + ' 个可识别</div>';
+  list.innerHTML = html;
+  $('btn-start-batch-face').disabled = (valid === 0);
+  $('batch-face-result').style.display = 'none';
+  $('batch-face-progress').style.display = 'none';
+}
+async function startBatchFace() {
+  var total = batchFaceFiles.length;
+  var success = 0, skipped = 0, failed = 0;
+  var progress = $('batch-face-progress');
+  var bar = $('batch-face-bar');
+  var pct = $('batch-face-pct');
+  var status = $('batch-face-status');
+  var result = $('batch-face-result');
+  progress.style.display = 'block';
+  result.style.display = 'none';
+  bar.max = total;
+  bar.value = 0;
+  status.innerHTML = '';
+  $('btn-start-batch-face').disabled = true;
+
+  for (var i = 0; i < total; i++) {
+    var f = batchFaceFiles[i];
+    var name = f.name.replace(/\.[^.]+$/, '');
+    var m = name.match(/^(\d+)_(.+)/);
+    bar.value = i + 1;
+    pct.textContent = Math.round((i + 1) / total * 100) + '%';
+
+    if (!m) {
+      failed++;
+      status.innerHTML += '<div style="color:var(--danger)">&#x2717; ' + f.name + ' — 文件名格式错误</div>';
+      continue;
+    }
+    var stuNo = m[1], stuName = m[2];
+
+    // Step 1: create/get student
+    var studentId;
+    try {
+      var stuResp = await apiFetch('/api/student?keyword=' + encodeURIComponent(stuNo));
+      var stuData = await stuResp.json();
+      if (stuData.total > 0 && stuData.data[0].stu_no === stuNo) {
+        studentId = stuData.data[0].id;
+      } else {
+        var createResp = await apiFetch('/api/student', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({stu_no:stuNo, name:stuName})
+        });
+        if (createResp.status === 201) {
+          studentId = (await createResp.json()).id;
+        } else if (createResp.status === 409) {
+          skipped++;
+          status.innerHTML += '<div style="color:var(--orange)">&#x26a0; ' + f.name + ' — 学号重复，跳过</div>';
+          continue;
+        } else {
+          failed++;
+          status.innerHTML += '<div style="color:var(--danger)">&#x2717; ' + f.name + ' — 创建学生失败</div>';
+          continue;
+        }
+      }
+    } catch(e) {
+      failed++;
+      status.innerHTML += '<div style="color:var(--danger)">&#x2717; ' + f.name + ' — 网络错误</div>';
+      continue;
+    }
+
+    // Step 2: register face
+    try {
+      var formData = new FormData();
+      formData.append('student_id', studentId);
+      formData.append('photo', f);
+      var regResp = await apiFetch('/api/face/register', {method:'POST', body:formData});
+      if (regResp.ok) {
+        success++;
+        var ver = (await regResp.json()).feature_version;
+        status.innerHTML += '<div style="color:var(--success)">&#x2713; ' + f.name + ' — ' + stuName + '(' + stuNo + ') 注册成功 v' + ver + '</div>';
+      } else {
+        var err = await regResp.json();
+        if (err.error && err.error.indexOf('已注册') >= 0) {
+          skipped++;
+          status.innerHTML += '<div style="color:var(--orange)">&#x26a0; ' + f.name + ' — 已注册，跳过</div>';
+        } else {
+          failed++;
+          status.innerHTML += '<div style="color:var(--danger)">&#x2717; ' + f.name + ' — ' + (err.error||'注册失败') + '</div>';
+        }
+      }
+    } catch(e) {
+      failed++;
+      status.innerHTML += '<div style="color:var(--danger)">&#x2717; ' + f.name + ' — 上传失败</div>';
+    }
+    status.scrollTop = status.scrollHeight;
+  }
+
+  // Show result
+  var cls = failed > 0 ? (success > 0 ? 'partial' : 'error') : 'success';
+  result.className = 'batch-result ' + cls;
+  result.innerHTML = '&#x1f4ca; 完成: 成功 <b>' + success + '</b> 条, 跳过 <b>' + skipped + '</b> 条, 失败 <b>' + failed + '</b> 条 (共 ' + total + ' 张)';
+  result.style.display = 'block';
+  $('btn-start-batch-face').disabled = false;
+  if (success > 0) { loadFaces(); loadStudents(); }
 }
 
 // ====== Records ======
