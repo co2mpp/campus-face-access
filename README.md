@@ -42,12 +42,15 @@
 │   ├── config.py            # MySQL 配置 & AES 密钥管理
 │   ├── models.py            # SQLAlchemy ORM 模型
 │   ├── routes/              # API 路由
-│   │   ├── student.py       # 学生 CRUD
+│   │   ├── student.py       # 学生 CRUD + 批量导入
 │   │   ├── face.py          # 人脸注册
 │   │   ├── sync.py          # 特征同步
-│   │   ├── record.py        # 通行记录
+│   │   ├── record.py        # 通行记录 + 手动开门
 │   │   ├── heartbeat.py     # 设备心跳
-│   │   └── admin.py         # Web 管理后台
+│   │   ├── dashboard.py     # 仪表盘统计
+│   │   ├── device.py        # 设备管理 CRUD
+│   │   ├── auth.py          # 管理员认证
+│   │   └── admin.py         # Web 管理后台 SPA
 │   └── services/            # 业务逻辑层
 ├── shared/                  # 共享模块
 │   └── crypto.py            # AES-256-GCM 加解密
@@ -83,16 +86,26 @@ CREATE DATABASE smart_gate DEFAULT CHARACTER SET utf8mb4;
 
 ### 4. 配置环境变量
 
+创建 `.env` 文件（已加入 `.gitignore`，不会被提交）：
+
 ```bash
 # 必需：MySQL 密码
-export MYSQL_PASSWORD=your_mysql_password
+MYSQL_PASSWORD=your_mysql_password
 
 # 可选
-export MYSQL_HOST=127.0.0.1
-export MYSQL_PORT=3306
-export MYSQL_USER=root
-export SERVER_URL=http://127.0.0.1:5000
-export DEVICE_SN=GATE-001
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_DB=smart_gate
+SERVER_URL=http://127.0.0.1:5000
+DEVICE_SN=GATE-001
+SERVER_PORT=5000
+CLIENT_PORT=5001
+
+# 管理后台认证
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+SECRET_KEY=your_random_secret
 ```
 
 ### 5. 启动服务端
@@ -113,13 +126,19 @@ python run_client.py
 
 ## 注册人脸
 
-### 批量注册
+### 批量注册（命令行）
 
 将照片命名为 `学号_姓名.jpg` 格式放入 `人脸图片/` 目录，然后运行：
 
 ```bash
 python batch_register.py
 ```
+
+### 批量注册（管理后台）
+
+登录管理后台 → 人脸注册管理 → 点击「📁 批量注册」→ 选择包含照片的文件夹 → 开始注册。
+
+支持自动解析文件名、预览解析结果、实时进度条和每文件状态显示。
 
 ### 单个注册
 
@@ -151,15 +170,30 @@ python query_records.py --export
 | `MYSQL_HOST` | 环境变量 | MySQL 地址，默认 127.0.0.1 |
 | `SERVER_URL` | 环境变量 | 客户端连接的服务端地址 |
 | `DEVICE_SN` | 环境变量 | 设备序列号，区分多台门禁终端 |
+| `ADMIN_USERNAME` | 环境变量 | 管理后台用户名，默认 admin |
+| `ADMIN_PASSWORD` | 环境变量 | 管理后台密码，默认 admin123 |
+| `SECRET_KEY` | 环境变量 | Flask session 密钥，生产环境应固定 |
 | `RECOGNITION_THRESHOLD` | `client/config.py` | 识别阈值，默认 0.5 |
 | `FRAME_SKIP` | `client/config.py` | 跳帧检测，默认每 3 帧检测一次 |
 | `HEARTBEAT_INTERVAL` | `client/config.py` | 心跳间隔，默认 30 秒 |
 | `OFFLINE_THRESHOLD` | `client/config.py` | 连续超时判定离线，默认 3 次 |
 
+## 管理后台
+
+登录 `http://127.0.0.1:5000/admin`，默认凭据 admin / admin123：
+
+| 标签页 | 功能 |
+|--------|------|
+| 总览仪表盘 | 统计卡片 + Chart.js 7天趋势图 + 院系分布图 |
+| 学生信息管理 | 搜索/过滤/CRUD + 批量导入(CSV/JSON) |
+| 人脸注册管理 | 单人注册 + 批量注册(文件夹) |
+| 通行记录管理 | 实时搜索 + 多条件过滤 + CSV导出 |
+| 设备状态 | 设备列表 + 在线状态 + CRUD |
+
 ## 安全提示
 
-- **生产环境务必修改** `MYSQL_PASSWORD` 环境变量，不要使用弱密码
-- 服务端首次启动会自动生成 `server/aes_key.txt`，请妥善保管此密钥文件
+- **生产环境务必修改** `MYSQL_PASSWORD` 和 `ADMIN_PASSWORD`，不要使用默认密码
+- 服务端首次启动会自动生成 `server/aes_key.txt`，请妥善保管此密钥文件（权限设 600）
 - 客户端需要通过安全渠道获取 AES 密钥（首次同步时从服务端获取）
 - 建议使用 HTTPS 保护客户端与服务端之间的通信
 - MySQL 数据库建议配置访问控制，仅允许服务端 IP 连接

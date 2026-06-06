@@ -70,6 +70,9 @@ export MYSQL_USER=gate_admin
 export MYSQL_PASSWORD=your_strong_password
 export MYSQL_DB=smart_gate
 export SERVER_PORT=5000
+export ADMIN_USERNAME=admin
+export ADMIN_PASSWORD=your_admin_password
+export SECRET_KEY=your_random_secret_key
 ```
 
 **重要**：`MYSQL_PASSWORD` 必须设置，程序不内置默认密码。
@@ -100,6 +103,9 @@ Type=simple
 User=www-data
 WorkingDirectory=/opt/smartgate
 Environment="MYSQL_PASSWORD=your_password"
+Environment="ADMIN_USERNAME=admin"
+Environment="ADMIN_PASSWORD=your_admin_password"
+Environment="SECRET_KEY=your_random_secret"
 ExecStart=/opt/smartgate/venv/bin/python run_server.py
 Restart=always
 RestartSec=5
@@ -129,6 +135,7 @@ pip install -r requirements.txt
 export SERVER_URL=http://192.168.1.100:5000   # 替换为服务端实际 IP
 export DEVICE_SN=GATE-001                       # 每台设备唯一标识
 export CLIENT_PORT=5001
+export MYSQL_PASSWORD=your_password             # 服务端数据库密码（客户端首次同步获取 AES 密钥用）
 ```
 
 ### 3. 连接摄像头
@@ -187,20 +194,20 @@ python batch_register.py
 python register_face.py <学号> <姓名> <照片路径>
 ```
 
-管理后台 `http://<服务器IP>:5000/admin` 也支持 Web 界面的学生管理和人脸注册。
+管理后台 `http://<服务器IP>:5000/admin` 也支持 Web 界面的学生管理和人脸注册（含单人注册和批量文件夹注册）。
 
 ## 运维管理
 
 ### Web 管理后台
 
-访问 `http://<服务器IP>:5000/admin`，功能包括：
+访问 `http://<服务器IP>:5000/admin`，默认凭据 admin / admin123（通过环境变量配置）。
+功能包括：
 
-- **仪表盘**：系统概览（学生数、设备数、今日通行量）
-- **学生管理**：增删改查学生信息
-- **人脸注册**：上传照片注册人脸
-- **通行记录**：查询和筛选所有通行记录
-- **设备状态**：查看各终端在线状态和最后心跳时间
-- **CSV 导出**：导出通行记录为 CSV 文件
+- **总览仪表盘**：统计卡片 + Chart.js 7天通行趋势图 + 院系分布图，30s 自动刷新
+- **学生管理**：增删改查 + 院系/学号/姓名搜索 + 在校状态过滤 + CSV/JSON 批量导入
+- **人脸注册**：单人上传注册 + **批量文件夹注册**（自动解析 `学号_姓名.jpg` 格式）
+- **通行记录**：实时搜索（学号/姓名/设备号）+ 方向/结果过滤 + 手动添加 + CSV 导出
+- **设备状态**：查看/添加/编辑/删除设备，在线状态与最后心跳时间
 
 ### 命令行工具
 
