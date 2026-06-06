@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**环境变量**（生产环境必须设置）：
+- `MYSQL_PASSWORD` — MySQL 密码，**必须**
+- `MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_USER` — MySQL 连接，默认 127.0.0.1:3306/root
+- `MYSQL_DB` — 数据库名，默认 `smart_gate`
+- `SERVER_URL` — 客户端用的服务端地址，默认 `http://127.0.0.1:5000`
+- `DEVICE_SN` — 设备序列号，默认 `GATE-001`
+- `CLIENT_PORT` — 客户端端口，默认 5001
+- `SERVER_PORT` — 服务端端口，默认 5000
+- `ADMIN_USERNAME` — 管理后台用户名，默认 `admin`
+- `ADMIN_PASSWORD` — 管理后台密码，默认 `admin123`
+- `SECRET_KEY` — Flask session 密钥，默认随机生成（生产环境应固定）
+
 ## 常用命令
 
 ```bash
@@ -23,18 +35,6 @@ python register_face.py <学号> <姓名> <照片路径>
 # 查询通行记录
 python query_records.py --stu 学号 --dir in --export
 ```
-
-**环境变量**（生产环境必须设置）：
-- `MYSQL_PASSWORD` — MySQL 密码，**必须**
-- `MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_USER` — MySQL 连接，默认 127.0.0.1:3306/root
-- `MYSQL_DB` — 数据库名，默认 `smart_gate`
-- `SERVER_URL` — 客户端用的服务端地址，默认 `http://127.0.0.1:5000`
-- `DEVICE_SN` — 设备序列号，默认 `GATE-001`
-- `CLIENT_PORT` — 客户端端口，默认 5001
-- `SERVER_PORT` — 服务端端口，默认 5000
-- `ADMIN_USERNAME` — 管理后台用户名，默认 `admin`
-- `ADMIN_PASSWORD` — 管理后台密码，默认 `admin123`
-- `SECRET_KEY` — Flask session 密钥，默认随机生成（生产环境应固定）
 
 ## 架构核心
 
@@ -143,13 +143,36 @@ routes/admin.py      ──▶ 纯 HTML 渲染，通过 JS fetch 调用上述 AP
 - 客户端-服务端通信目前是明文 HTTP，生产环境建议 Nginx 反向代理 + HTTPS
 - `shared/crypto.py` 使用 AES-256-GCM，认证标签 16 字节附加在密文末尾，解密时验证完整性
 
+## 管理后台功能
+
+管理后台（`/admin`）是一个纯前端 SPA，提供以下功能标签页：
+
+| 标签页 | 功能 |
+|--------|------|
+| 总览仪表盘 | 实时统计卡片 + Chart.js 7天趋势折线图 + 院系分布柱状图，30s 自动刷新 |
+| 学生信息管理 | 搜索（学号/姓名/院系）+ 状态过滤 + CRUD + CSV/JSON 批量导入 + 分页 |
+| 人脸注册管理 | 左侧搜索列表 + 右侧单人注册 + **批量注册**（选择文件夹，自动解析 `学号_姓名.jpg`） |
+| 通行记录管理 | 实时搜索（学号/姓名/设备号）+ 方向/结果过滤 + CSV 导出 + 手动添加 + 分页 |
+| 设备状态 | 设备列表 + 在线/离线状态 + CRUD 操作 |
+
+## 客户端终端功能
+
+客户端 Web 控制台（`http://127.0.0.1:5001`）功能：
+
+- 双路 MJPEG 视频流 + 方向切换
+- 实时识别结果展示（扫描框动画 + 结果闪层）
+- 运行时长/离线计时器（每秒实时更新）
+- 通行记录列表（显示上传状态 ✓/⏳，localStorage 持久化，刷新不丢失）
+- 待上传记录数徽章
+- 手动开门 + 摄像头绑定配置
+
 ## 新增 API 端点（v2）
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/dashboard/stats` | GET | 仪表盘聚合统计（学生数/在校人数/今日通行/7天趋势/院系分布） |
 | `/api/device` | GET/POST | 设备列表/添加设备 |
-| `/api/device/<id>` | PUT/DELETE | 更新/删除设备 |
+| `/api/device/<id>` | GET/PUT/DELETE | 查询/更新/删除设备 |
 | `/api/auth/login` | POST | 管理员登录 |
 | `/api/auth/logout` | POST | 退出登录 |
 | `/api/auth/status` | GET | 检查登录状态 |
@@ -162,8 +185,9 @@ routes/admin.py      ──▶ 纯 HTML 渲染，通过 JS fetch 调用上述 AP
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/pending_count` | GET | 离线缓存记录数 |
-| `/api/uptime` | GET | 客户端运行时长（秒） |
+| `/api/uptime` | GET | 返回客户端启动时间戳，前端每秒实时计算运行时长 |
 | `/api/last_sync` | GET | 上次同步的特征库版本号 |
+| `/api/manual_open` | POST | 代理转发手动开门请求到服务端 |
 
 ## 注意事项
 
