@@ -66,11 +66,11 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;
 }
 .topbar-title{font-size:16px;font-weight:600;white-space:nowrap}
-.topbar-select{
-  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:6px 12px;color:var(--text);font-size:13px;cursor:pointer;outline:none;
+.topbar-device{
+  font-family:"SF Mono","Cascadia Code",monospace;
+  font-size:12px;color:var(--text-muted);
+  background:rgba(255,255,255,.06);padding:4px 10px;border-radius:var(--radius-sm);
 }
-.topbar-select:focus{border-color:var(--accent)}
 .topbar-center{
   position:absolute;left:50%;transform:translateX(-50%);display:flex;
   align-items:center;gap:12px;
@@ -101,9 +101,8 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   height:calc(100vh - 56px);gap:0;overflow:hidden;
 }
 .camera-section{
-  display:flex;align-items:center;justify-content:center;
-  padding:16px;border-right:1px solid var(--border);
-  position:relative;min-height:0;
+  padding:10px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;min-height:0;
 }
 .info-section{
   display:flex;flex-direction:column;padding:16px;gap:12px;
@@ -112,8 +111,8 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 
 /* ===== Camera Area ===== */
 .camera-header{
-  position:absolute;top:16px;left:24px;z-index:10;
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:10px;margin-bottom:8px;
+  flex-shrink:0;
 }
 .camera-dir-tag{
   display:inline-flex;align-items:center;gap:6px;padding:5px 14px;
@@ -124,12 +123,11 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
 .camera-id{font-size:11px;color:var(--text-muted)}
 
 .camera-viewport{
-  background:#000;border-radius:var(--radius);position:relative;
+  flex:1;background:#000;border-radius:var(--radius);position:relative;
   overflow:hidden;display:flex;align-items:center;justify-content:center;
-  border:1px solid var(--border);width:95%;max-width:640px;
-  aspect-ratio:4/3;
+  border:1px solid var(--border);min-height:0;
 }
-.camera-viewport img{width:100%;height:100%;object-fit:cover;display:block}
+.camera-viewport img{width:100%;height:100%;object-fit:contain;display:block}
 .camera-placeholder{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   color:var(--text-muted);text-align:center;
@@ -367,10 +365,17 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   color:var(--red);font-size:12px;margin-top:8px;
 }
 
+/* ===== Dark Scrollbar ===== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#475569}
+*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
 @media(max-width:800px){
   .main-layout{grid-template-columns:1fr}
-  .camera-section{border-right:none;border-bottom:1px solid var(--border);padding:12px}
-  .camera-viewport{width:95%;max-width:100%;aspect-ratio:4/3}
+  .camera-section{border-right:none;border-bottom:1px solid var(--border)}
+  .camera-viewport{min-height:260px}
   .scan-frame{width:120px;height:120px}
   .topbar-center{display:none}
 }
@@ -383,9 +388,7 @@ body{font-family:"Inter","Microsoft YaHei","Segoe UI",sans-serif;background:var(
   <div class="topbar-brand">
     <div class="topbar-logo">&#x1f6e1;</div>
     <span class="topbar-title">门禁终端</span>
-    <select class="topbar-select" id="terminal-select">
-      <option value="{{device_sn}}">{{device_sn}}</option>
-    </select>
+    <span class="topbar-device">{{device_sn}}</span>
   </div>
 
   <div class="topbar-center">
@@ -498,7 +501,7 @@ const BINDING = {{binding_json|safe}};
 const IN_ENABLED = {{in_enabled|tojson}};
 const OUT_ENABLED = {{out_enabled|tojson}};
 let currentDirection = 'in';
-let events = [];
+let events = JSON.parse(localStorage.getItem('terminal_events') || '[]');
 let isOnline = false;
 let doorTimer = null;
 let cameraActive = IN_ENABLED || OUT_ENABLED;
@@ -513,6 +516,9 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// Restore records from localStorage
+updateRecordsList();
 
 // Switch direction
 function switchDirection(dir) {
@@ -608,7 +614,7 @@ async function pollStatus() {
       if (!offlineSince) {
         offlineSince = Date.now();
         updateOfflineTimer();
-        offlineTimerInterval = setInterval(updateOfflineTimer, 30000);
+        offlineTimerInterval = setInterval(updateOfflineTimer, 1000);
       }
     }
 
@@ -661,29 +667,40 @@ async function pollPendingCount() {
     // Also update offline banner queued count
     const queued = document.getElementById('offline-queued');
     if (queued) queued.textContent = '排队: ' + data.count + ' 条';
+    // Auto-mark uploaded when online and no pending
+    if (isOnline && data.count === 0) {
+      let changed = false;
+      events.forEach(e => { if (!e.uploaded) { e.uploaded = true; changed = true; } });
+      if (changed) { saveEvents(); updateRecordsList(); }
+    }
   } catch(e) {}
 }
 setInterval(pollPendingCount, 10000);
 pollPendingCount();
 
-// Poll uptime
-async function pollUptime() {
+// Real-time uptime (client-side calculation)
+var clientStartTime = null;
+async function initUptime() {
   try {
     const resp = await fetch('/api/uptime');
     const data = await resp.json();
-    const sec = data.uptime;
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    let text = '运行: ';
-    if (h > 0) text += h + 'h ' + m + 'm';
-    else if (m > 0) text += m + 'm ' + s + 's';
-    else text += s + 's';
-    document.getElementById('uptime-display').innerHTML = '<span class="uptime-dot"></span>' + text;
+    clientStartTime = data.start_time;
   } catch(e) {}
 }
-setInterval(pollUptime, 30000);
-pollUptime();
+function updateUptime() {
+  if (!clientStartTime) return;
+  const sec = Math.floor(Date.now() / 1000 - clientStartTime);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  let text = '运行: ';
+  if (h > 0) text += h + 'h ' + m + 'm';
+  else if (m > 0) text += m + 'm ' + s + 's';
+  else text += s + 's';
+  document.getElementById('uptime-display').innerHTML = '<span class="uptime-dot"></span>' + text;
+}
+initUptime();
+setInterval(updateUptime, 1000);
 
 // Poll last sync info
 async function pollLastSync() {
@@ -696,9 +713,14 @@ async function pollLastSync() {
 setInterval(pollLastSync, 60000);
 pollLastSync();
 
+function saveEvents() {
+  try { localStorage.setItem('terminal_events', JSON.stringify(events.slice(0, 50))); } catch(_) {}
+}
 function addEvent(e) {
+  e.uploaded = false;
   events.unshift(e);
   if (events.length > 50) events.pop();
+  saveEvents();
   updateRecordsList();
   showRecognitionResult(e);
 }
@@ -817,11 +839,13 @@ function updateRecordsList() {
   let html = '';
   events.slice(0, 20).forEach(e => {
     const success = e.result === 'success';
+    const uploadIcon = e.uploaded ? '<span title="已上传" style="color:var(--green);font-size:11px">&#x2713;</span>' : '<span title="待上传" style="color:var(--orange);font-size:11px">&#x23f3;</span>';
     html += `<div class="record-item">
       <span class="rec-dot ${success?'success':'fail'}"></span>
       <span class="rec-name">${e.name}</span>
       <span class="rec-stuno">${e.stu_no}</span>
       <span class="rec-dir ${e.direction==='in'?'in':'out'}">${e.direction==='in'?'&#x2b06;进':'&#x2b07;出'}</span>
+      ${uploadIcon}
       <span class="rec-time">${e.time}</span>
     </div>`;
   });
@@ -1207,9 +1231,8 @@ select:focus{border-color:var(--accent)}
 
     @app.route('/api/uptime')
     def uptime():
-        """返回客户端运行时长（秒）"""
-        uptime_seconds = time.time() - app.config.get('start_time', time.time())
-        return jsonify({'uptime': int(uptime_seconds)})
+        """返回客户端启动时间戳，前端实时计算运行时长"""
+        return jsonify({'start_time': app.config.get('start_time', time.time())})
 
     @app.route('/api/last_sync')
     def last_sync():

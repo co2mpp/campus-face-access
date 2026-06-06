@@ -27,7 +27,11 @@ class StudentService:
         q = self.session.query(Student)
         if keyword:
             q = q.filter(
-                or_(Student.name.like(f'%{keyword}%'), Student.stu_no.like(f'%{keyword}%'))
+                or_(
+                    Student.name.like(f'%{keyword}%'),
+                    Student.stu_no.like(f'%{keyword}%'),
+                    Student.department.like(f'%{keyword}%')
+                )
             )
         if status and status in ('in', 'out'):
             q = q.filter(Student.status == status)

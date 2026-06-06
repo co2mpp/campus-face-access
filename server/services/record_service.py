@@ -1,7 +1,7 @@
 """通行记录服务"""
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from server.models import AccessRecord, Student
 
 
@@ -74,7 +74,11 @@ class RecordService:
 
         if stu_no:
             q = q.join(Student, AccessRecord.student_id == Student.id).filter(
-                Student.stu_no.like(f'%{stu_no}%')
+                or_(
+                    Student.stu_no.like(f'%{stu_no}%'),
+                    Student.name.like(f'%{stu_no}%'),
+                    AccessRecord.device_sn.like(f'%{stu_no}%')
+                )
             )
         if direction:
             q = q.filter(AccessRecord.direction == direction)

@@ -248,6 +248,7 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
 }
 .pagination button:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
 .pagination button.active { background:var(--primary); color:#fff; }
+.pagination button:disabled { opacity:.3; cursor:default; pointer-events:none; }
 
 /* ===== Toast ===== */
 .toast {
@@ -594,7 +595,7 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
         <div class="search-bar">
           <div class="search-input-wrap">
             <span class="search-icon">&#x1f50d;</span>
-            <input type="text" id="rec-stu" placeholder="搜索姓名、学号、设备..." class="search-input">
+            <input type="text" id="rec-stu" placeholder="搜索姓名、学号、设备..." class="search-input" oninput="onRecSearchInput()">
           </div>
           <select id="rec-dir" class="filter-select" onchange="loadRecords()">
             <option value="">全部方向</option>
@@ -607,7 +608,6 @@ input:focus, select:focus { outline:none; border-color:var(--primary); }
             <option value="success">成功</option>
             <option value="fail">失败</option>
           </select>
-          <button class="btn btn-primary btn-sm" onclick="loadRecords()">&#x1f50d; 查询</button>
         </div>
         <div style="overflow-x:auto">
         <table>
@@ -1195,6 +1195,11 @@ async function deleteFaceForSelected() {
 }
 
 // ====== Records ======
+var recSearchTimer = null;
+function onRecSearchInput() {
+  clearTimeout(recSearchTimer);
+  recSearchTimer = setTimeout(function() { recordPage = 1; loadRecords(); }, 300);
+}
 async function loadRecords() {
   const params = new URLSearchParams();
   const stu = $('rec-stu').value.trim(); if (stu) params.set('stu_no', stu);
@@ -1367,9 +1372,21 @@ function renderPagination(containerId, total, page, cb) {
   const totalPages = Math.ceil(total / 20) || 1;
   if (totalPages <= 1) { container.innerHTML = ''; return; }
   let html = '';
+  // First + Prev
+  html += `<button${page===1?' disabled':''} onclick="(${cb.toString()})(1)">&#xAB;</button>`;
+  html += `<button${page===1?' disabled':''} onclick="(${cb.toString()})(${page-1})">&#x2039;</button>`;
+  // Page numbers with ellipsis
+  const range = 2;
   for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="${i===page?'active':''}" onclick="(${cb.toString()})(${i})">${i}</button>`;
+    if (i === 1 || i === totalPages || (i >= page - range && i <= page + range)) {
+      html += `<button class="${i===page?'active':''}" onclick="(${cb.toString()})(${i})">${i}</button>`;
+    } else if (i === page - range - 1 || i === page + range + 1) {
+      html += '<button disabled>...</button>';
+    }
   }
+  // Next + Last
+  html += `<button${page===totalPages?' disabled':''} onclick="(${cb.toString()})(${page+1})">&#x203A;</button>`;
+  html += `<button${page===totalPages?' disabled':''} onclick="(${cb.toString()})(${totalPages})">&#xBB;</button>`;
   container.innerHTML = html;
 }
 
