@@ -39,8 +39,8 @@ logger = logging.getLogger('client')
 
 
 # ========== MJPEG 视频流生成器 ==========
-def generate_mjpeg(direction, frame_buffers, frame_locks):
-    """生成 MJPEG 流"""
+def generate_mjpeg(direction, frame_buffers, frame_locks, last_results=None):
+    """生成 MJPEG 流，保持最近识别结果 2 秒不消失"""
     while True:
         lock = frame_locks.get(direction)
         buf = frame_buffers.get(direction)
@@ -53,6 +53,13 @@ def generate_mjpeg(direction, frame_buffers, frame_locks):
             msg = 'Waiting...' if lock else 'Camera disabled'
             cv2.putText(frame, msg, (140, 240),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        # Draw recent recognition results (persist for 2s)
+        if last_results and direction in last_results:
+            res, ts = last_results[direction]
+            if res and time.time() - ts < 2.0:
+                from client.recognizer import RecognizerEngine
+                RecognizerEngine.draw_results_static(frame, res)
 
         ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
         if not ret:
@@ -113,7 +120,8 @@ class CameraThread(threading.Thread):
 class RecognitionThread(threading.Thread):
     def __init__(self, camera_thread: CameraThread, direction: str,
                  engine: RecognizerEngine, uploader: RecordUploader,
-                 frame_buffers: dict, frame_locks: dict):
+                 frame_buffers: dict, frame_locks: dict,
+                 last_results: dict = None):
         super().__init__(daemon=True, name=f'recog-{direction}')
         self._cam = camera_thread
         self.direction = direction
@@ -121,6 +129,7 @@ class RecognitionThread(threading.Thread):
         self.uploader = uploader
         self._frame_buffers = frame_buffers
         self._frame_locks = frame_locks
+        self._last_results = last_results if last_results is not None else {}
         self.running = False
         self.events = queue.Queue(maxsize=100)
 
@@ -150,6 +159,7 @@ class RecognitionThread(threading.Thread):
                 self.engine.draw_results(annotated, results)
                 with self._frame_locks[self.direction]:
                     self._frame_buffers[self.direction] = annotated
+                self._last_results[self.direction] = (results, time.time())
 
                 for r in results:
                     record = {
@@ -192,6 +202,7 @@ def create_client_app():
     app.config['recognition_threads'] = []
     app.config['frame_buffers'] = {}
     app.config['frame_locks'] = {}
+    pass  # last_results set in run_client()
 
     import numpy as np
 
@@ -216,7 +227,7 @@ def create_client_app():
         if direction not in ('in', 'out'):
             return 'Invalid direction', 404
         return Response(
-            generate_mjpeg(direction, app.config['frame_buffers'], app.config['frame_locks']),
+            generate_mjpeg(direction, app.config['frame_buffers'], app.config['frame_locks'], app.config.get('last_results')),
             mimetype='multipart/x-mixed-replace; boundary=frame'
         )
 
@@ -323,6 +334,7 @@ def restart_recognition(app):
     engine = app.config.get('engine')
     uploader = app.config.get('uploader')
     frame_buffers = app.config['frame_buffers']
+    last_results = app.config.get('last_results', {})
     frame_locks = app.config['frame_locks']
 
     if not binding or not engine or not uploader:
@@ -343,7 +355,7 @@ def restart_recognition(app):
                               secondary_direction='out' if single_camera else None)
         cam_threads.append(cam_in)
         recog_threads.append(
-            RecognitionThread(cam_in, 'in', engine, uploader, frame_buffers, frame_locks)
+            RecognitionThread(cam_in, 'in', engine, uploader, frame_buffers, frame_locks, last_results)
         )
 
     if out_enabled:
@@ -354,7 +366,7 @@ def restart_recognition(app):
             cam_threads.append(cam_out)
             cam_out_ref = cam_out
         recog_threads.append(
-            RecognitionThread(cam_out_ref, 'out', engine, uploader, frame_buffers, frame_locks)
+            RecognitionThread(cam_out_ref, 'out', engine, uploader, frame_buffers, frame_locks, last_results)
         )
 
     for t in cam_threads:
@@ -376,6 +388,7 @@ def run_client():
     # 帧缓冲区与锁
     frame_buffers = {'in': None, 'out': None}
     frame_locks = {'in': threading.Lock(), 'out': threading.Lock()}
+    last_results = {}  # 持久化识别结果（MJPEG流复用绘制）
 
     engine = RecognizerEngine()
     print("正在加载 InsightFace 模型...")
@@ -448,7 +461,7 @@ def run_client():
                                   secondary_direction='out' if single_camera else None)
             camera_threads.append(cam_in)
             recognition_threads.append(
-                RecognitionThread(cam_in, 'in', engine, uploader, frame_buffers, frame_locks)
+                RecognitionThread(cam_in, 'in', engine, uploader, frame_buffers, frame_locks, last_results)
             )
 
         if out_enabled:
@@ -459,7 +472,7 @@ def run_client():
                 camera_threads.append(cam_out)
                 cam_out_ref = cam_out
             recognition_threads.append(
-                RecognitionThread(cam_out_ref, 'out', engine, uploader, frame_buffers, frame_locks)
+                RecognitionThread(cam_out_ref, 'out', engine, uploader, frame_buffers, frame_locks, last_results)
             )
 
         for t in camera_threads:
@@ -469,6 +482,7 @@ def run_client():
 
     # 启动 Web
     client_app = create_client_app()
+    client_app.config['last_results'] = last_results  # 共享给 MJPEG 流
     client_app.config['engine'] = engine
     client_app.config['uploader'] = uploader
     client_app.config['monitor'] = monitor

@@ -1,0 +1,13 @@
+[
+  {"stu_no": "20240001", "name": "张三", "department": "计算机科学与技术"},
+  {"stu_no": "20240002", "name": "李四", "department": "智能科学与技术"},
+  {"stu_no": "20240003", "name": "王五", "department": "软件工程"},
+  {"stu_no": "20240004", "name": "赵六", "department": "数据科学与大数据技术"},
+  {"stu_no": "20240005", "name": "孙七", "department": "人工智能"},
+  {"stu_no": "20240006", "name": "周八", "department": "网络工程"},
+  {"stu_no": "20240007", "name": "吴九", "department": "信息安全"},
+  {"stu_no": "20240008", "name": "郑十", "department": "电子信息工程"},
+  {"stu_no": "20240009", "name": "陈小明", "department": "计算机科学与技术"},
+  {"stu_no": "20240010", "name": "林小红", "department": "智能科学与技术"}
+]
+

@@ -4,10 +4,66 @@
 - AES-256-GCM 临时解密 → 余弦相似度 → 立即清除明文
 """
 import time
+import os
 import struct
 import threading
 import numpy as np
 import cv2
+from PIL import Image, ImageDraw, ImageFont
+
+# 中文字体加载（Windows 常见路径）
+_CN_FONT = None
+_FONT_PATHS = [
+    'C:/Windows/Fonts/msyh.ttc',   # 微软雅黑
+    'C:/Windows/Fonts/simhei.ttf',  # 黑体
+    'C:/Windows/Fonts/simsun.ttc',  # 宋体
+    'C:/Windows/Fonts/STSONG.TTF',  # 华文宋体
+]
+
+
+def _get_font(size=20):
+    global _CN_FONT
+    if _CN_FONT is not None:
+        try:
+            return ImageFont.truetype(_CN_FONT, size)
+        except Exception:
+            pass
+    for fp in _FONT_PATHS:
+        if os.path.exists(fp):
+            try:
+                f = ImageFont.truetype(fp, size)
+                _CN_FONT = fp
+                return f
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def _cv2pil(cv_img):
+    """OpenCV BGR → PIL RGB"""
+    return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+
+
+def _pil2cv(pil_img):
+    """PIL RGB → OpenCV BGR"""
+    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+
+def _draw_text_cn(frame, text, pos, color, size=22):
+    """在 OpenCV 帧上用 PIL 绘制中文文本（原地修改）"""
+    pil_img = _cv2pil(frame)
+    draw = ImageDraw.Draw(pil_img)
+    font = _get_font(size)
+    pil_color = (color[2], color[1], color[0]) if len(color) == 3 else color
+    # 黑色描边 + 无 stroke 填充，文字更锐利
+    x, y = pos
+    draw.text((x-1, y), text, font=font, fill=(0, 0, 0))
+    draw.text((x+1, y), text, font=font, fill=(0, 0, 0))
+    draw.text((x, y-1), text, font=font, fill=(0, 0, 0))
+    draw.text((x, y+1), text, font=font, fill=(0, 0, 0))
+    draw.text((x, y), text, font=font, fill=pil_color)
+    result = _pil2cv(pil_img)
+    frame[:] = result  # 原地写回，调用方无需重新赋值
 from insightface.app import FaceAnalysis
 from client.config import (
     get_db, get_aes_key, RECOGNITION_THRESHOLD,
@@ -129,14 +185,19 @@ class RecognizerEngine:
 
     def draw_results(self, frame, results: list[dict]):
         """在帧上绘制识别结果"""
+        return RecognizerEngine.draw_results_static(frame, results)
+
+    @staticmethod
+    def draw_results_static(frame, results: list[dict]):
+        """静态版本，供 MJPEG 流复用（支持中文）"""
         for r in results:
             bbox = r['bbox']
             is_success = r.get('result', 'success') == 'success'
             color = (0, 255, 0) if is_success else (0, 0, 255)
-            label = f"{r['name']} ({r['stu_no']}) {r['similarity']:.2f}"
+            label = f"{r['name']}（{r['stu_no']}）{r['similarity']:.1%}"
             if not is_success:
-                label += ' FAIL'
+                label = f"陌生人 {r['similarity']:.1%}"
             cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
-            cv2.putText(frame, label, (bbox[0], bbox[1] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            text_y = max(bbox[1] - 26, 4)
+            _draw_text_cn(frame, label, (bbox[0], text_y), color, size=22)
         return frame
