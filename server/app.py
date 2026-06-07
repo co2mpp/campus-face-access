@@ -49,7 +49,7 @@ def create_app():
     from server.routes.sync import bp as sync_bp
     from server.routes.record import bp as record_bp
     from server.routes.heartbeat import bp as heartbeat_bp
-    from server.routes.admin import bp as admin_bp, INDEX_REDIRECT
+    from server.routes.admin import bp as admin_bp
     from server.routes.dashboard import bp as dashboard_bp
     from server.routes.device import bp as device_bp
     from server.routes.auth import bp as auth_bp
@@ -64,10 +64,10 @@ def create_app():
     app.register_blueprint(auth_bp)
 
     # 根路径 → 管理后台
-    from flask import render_template_string
+    from flask import render_template
     @app.route('/')
     def index():
-        return render_template_string(INDEX_REDIRECT)
+        return render_template('redirect.html')
 
     app.config['JSON_AS_ASCII'] = False
     return app
