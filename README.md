@@ -54,7 +54,8 @@
 │   └── services/            # 业务逻辑层
 ├── shared/                  # 共享模块
 │   └── crypto.py            # AES-256-GCM 加解密
-├── 人脸图片/                 # 测试人脸照片 (可选)
+├── test_students.csv        # 测试数据 (10名学生)
+├── test_students.json       # 测试数据 (JSON格式)
 ├── run_server.py            # 服务端启动入口
 ├── run_client.py            # 客户端启动入口
 ├── batch_register.py        # 批量人脸注册工具

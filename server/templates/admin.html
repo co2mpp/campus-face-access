@@ -908,7 +908,7 @@ async function loadDashboard() {
       });
     }
 
-    // Department chart (Chart.js horizontal bar)
+    // Department chart (Chart.js pie)
     if (d.department_distribution && d.department_distribution.length > 0) {
       var deptLabels = d.department_distribution.map(function(dd) { return dd.name; });
       var deptData = d.department_distribution.map(function(dd) { return dd.count; });
@@ -919,18 +919,24 @@ async function loadDashboard() {
       var ctx2 = $('dept-chart-canvas').getContext('2d');
       if (deptChart) deptChart.destroy();
       deptChart = new Chart(ctx2, {
-        type: 'bar',
+        type: 'pie',
         data: {
           labels: deptLabels,
-          datasets: [{ label: '人数', data: deptData, backgroundColor: deptColors, borderRadius: 6 }]
+          datasets: [{ data: deptData, backgroundColor: deptColors, borderWidth: 2, borderColor: '#fff' }]
         },
         options: {
-          indexAxis: 'y',
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e2e8f0' } },
-            y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+          plugins: {
+            legend: { display: true, position: 'right', labels: { font: { size: 11 }, padding: 12, usePointStyle: true } },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  var total = ctx.dataset.data.reduce(function(a,b){return a+b;}, 0);
+                  var pct = Math.round(ctx.raw / total * 100);
+                  return ctx.label + ': ' + ctx.raw + '人 (' + pct + '%)';
+                }
+              }
+            }
           }
         }
       });

@@ -88,7 +88,13 @@ python query_records.py --stu 学号 --dir in --export
 
 ### Web UI 实现方式
 
-客户端控制台 HTML（深色主题终端风格）和管理后台 HTML 都是**直接嵌入在 Python 源码中的字符串模板**（`CLIENT_HTML` 和 `ADMIN_HTML`），不是独立模板文件。修改 UI 需要编辑 `client/app.py` 或 `server/routes/admin.py` 中的对应字符串。管理后台是一个纯前端 SPA，通过 fetch 调用 `/api/*` 接口，不使用任何 JS 框架。
+前端 HTML 已拆分到独立模板文件：
+- `client/templates/terminal.html` — 客户端深色主题终端控制台
+- `client/templates/config.html` — 摄像头方向绑定配置页
+- `server/templates/admin.html` — 管理后台 SPA
+- `server/templates/redirect.html` — 首页重定向
+
+使用 Flask `render_template()` 渲染 Jinja2 模板。管理后台是一个纯前端 SPA，通过 fetch 调用 `/api/*` 接口，不使用任何 JS 框架。
 
 ### 服务端路由-服务分层
 
@@ -136,7 +142,7 @@ routes/admin.py      ──▶ 纯 HTML 渲染，通过 JS fetch 调用上述 AP
 
 ## 安全注意事项
 
-- 管理后台 `/admin` 页面本身无服务端认证拦截（任何人可访问），认证靠前端 JS 调用 `/api/auth/status` 检查 session；**API 端点未使用 `login_required` 装饰器进行服务端保护**，生产环境应在 API 路由层强制启用
+- 管理后台 `/admin` 页面本身无服务端认证拦截（任何人可访问），认证靠前端 JS 调用 `/api/auth/status` 检查 session；部分写操作 API 已使用 `@login_required` 保护（dashboard/stats、device写操作、student写操作、face写操作、record删除），生产环境建议全部 API 路由层强制启用
 - 管理员默认凭据 admin/admin123（通过 `ADMIN_USERNAME`/`ADMIN_PASSWORD` 环境变量配置）
 - `server/aes_key.txt` 在生产环境应设为 600 权限，该文件是系统安全的根基
 - 服务端 `server/config.py` 中 `MYSQL_PASSWORD` 未设置时会直接抛出 `RuntimeError`，不再包含硬编码后备值，生产部署**必须**通过环境变量提供
@@ -149,7 +155,7 @@ routes/admin.py      ──▶ 纯 HTML 渲染，通过 JS fetch 调用上述 AP
 
 | 标签页 | 功能 |
 |--------|------|
-| 总览仪表盘 | 实时统计卡片 + Chart.js 7天趋势折线图 + 院系分布柱状图，30s 自动刷新 |
+| 总览仪表盘 | 实时统计卡片 + Chart.js 7天趋势折线图 + 院系分布饼图，30s 自动刷新 |
 | 学生信息管理 | 搜索（学号/姓名/院系）+ 状态过滤 + CRUD + CSV/JSON 批量导入 + 分页 |
 | 人脸注册管理 | 左侧搜索列表 + 右侧单人注册 + **批量注册**（选择文件夹，自动解析 `学号_姓名.jpg`） |
 | 通行记录管理 | 实时搜索（学号/姓名/设备号）+ 方向/结果过滤 + CSV 导出 + 手动添加 + 分页 |
